@@ -26,7 +26,7 @@ COPY --from=builder /usr/local/bin/ /usr/local/bin/
 WORKDIR /app
 
 COPY --chown=appuser:appuser . .
-COPY --chown=appuser:appuser backend/entrypoint.prod.sh /app/entrypoint.prod.sh
+COPY --chown=appuser:appuser compose/entrypoint.prod.sh /app/entrypoint.prod.sh
 
 ENV PYTHONDONTWRITEBITYCODE=1
 ENV PYTHONUNBUFFERED=1

@@ -80,22 +80,14 @@ WSGI_APPLICATION = 'talonby.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.{}'.format(
-            os.getenv('DATABASE_ENGINE', 'sqlite3')
-        ),
-        'NAME': os.getenv('DATABASE_NAME', 'talons'),
-        'USER': os.getenv('DATABASE_USERNAME', 'myprojectuser'),
-        'PASSWORD': os.getenv("POSTGRES_PASSWORD", 'password'),
-        'HOST': os.getenv('DATABASE_HOST', '127.0.0.1'),
-        'PORT': os.getenv('DATABASE_PORT', 5432)
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': os.getenv('POSTGRES_NAME'),
+        'USER': os.getenv('POSTGRES_USERNAME'),
+        'PASSWORD': os.getenv("POSTGRES_PASSWORD"),
+        'HOST': os.getenv('POSTGRES_HOST'),
+        'PORT': os.getenv('POSTGRES_PORT')
     }
 }
-# DATABASES = {
-#     "default": {
-#         "ENGINE": "django.db.backends.sqlite3",
-#         "NAME": "mydatabase",
-#     }
-# }
 
 # Password validation
 # https://docs.djangoproject.com/en/6.1/ref/settings/#auth-password-validators
