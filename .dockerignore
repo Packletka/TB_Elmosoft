@@ -1,1 +1,8 @@
-.env
+.venv
+.git/
+backend/.env*
+__pycache__/
+#*.pyc
+.gitignore
+.dockerignore
+README.md

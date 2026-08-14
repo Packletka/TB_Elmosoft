@@ -1,16 +1,26 @@
 # Base build stage
 FROM python:3.12-slim AS builder
 
-RUN mkdir /app
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV UV_COMPILE_BYTECODE=1
+# best practice from the official uv documentation
+ENV UV_LINK_MODE=copy
+
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 WORKDIR /app
 
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
+# Bottom layer
+COPY pyproject.toml uv.lock ./
 
-RUN pip install --upgrade pip
-COPY requirements.txt /app/
-RUN pip install --no-cache-dir -r requirements.txt
+# Middle layer
+RUN uv sync --frozen --no-dev --no-install-project
+
+COPY backend/ ./backend
+
+# Top layer
+#RUN uv sync --frozen --no-dev
 
 
 # Production stage
@@ -20,22 +30,22 @@ RUN useradd -m -r appuser && \
     mkdir /app && \
     chown -R appuser /app
 
-COPY --from=builder /usr/local/lib/python3.12/site-packages/ /usr/local/lib/python3.12/site-packages/
-COPY --from=builder /usr/local/bin/ /usr/local/bin/
+COPY --from=builder /app/.venv /app/.venv
+
+ENV VIRTUAL_ENV=/app/.venv
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
 COPY --chown=appuser:appuser . .
-COPY --chown=appuser:appuser compose/entrypoint.prod.sh /app/entrypoint.prod.sh
 
-ENV PYTHONDONTWRITEBITYCODE=1
-ENV PYTHONUNBUFFERED=1
+RUN chmod +x /app/compose/entrypoint.prod.sh 2>/dev/null || true
 
 USER appuser
 
 EXPOSE 8000
 
-RUN chmod +x /app/entrypoint.prod.sh
-
-CMD ["/app/entrypoint.prod.sh"]
-
+CMD ["/app/compose/entrypoint.prod.sh"]
