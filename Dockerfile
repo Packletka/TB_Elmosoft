@@ -14,13 +14,8 @@ WORKDIR /app
 # Bottom layer
 COPY pyproject.toml uv.lock ./
 
-# Middle layer
-RUN uv sync --frozen --no-dev --no-install-project
-
-COPY backend/ ./backend
-
 # Top layer
-#RUN uv sync --frozen --no-dev
+RUN uv sync --frozen --no-dev --no-install-project
 
 
 # Production stage
@@ -42,10 +37,10 @@ WORKDIR /app
 
 COPY --chown=appuser:appuser . .
 
-RUN chmod +x /app/compose/entrypoint.prod.sh 2>/dev/null || true
+RUN chmod +x /app/compose/entrypoint.local.sh 2>/dev/null || true
 
 USER appuser
 
 EXPOSE 8000
 
-CMD ["/app/compose/entrypoint.prod.sh"]
+CMD ["/app/compose/entrypoint.local.sh"]
