@@ -1,0 +1,29 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+
+#  - repo: https://github.com/PyCQA/isort
+#    rev: 8.0.1
+#    hooks:
+#      - id: isort
+#        args: ["--profile=black", "--line-length=120", "--settings-path=pyproject.toml", "--check-only"]
+
+  - repo: https://github.com/psf/black
+    rev: 26.5.1
+    hooks:
+      - id: black
+        args: ["--line-length=120", "--check"]
+
+  - repo: https://github.com/PyCQA/flake8
+    rev: 7.3.0
+    hooks:
+      - id: flake8
+        additional_dependencies: [ flake8-pyproject ]
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.3
+    hooks:
+      - id: ruff
+        args: [ --select, I, --exit-non-zero-on-fix ]
