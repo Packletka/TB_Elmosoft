@@ -1,0 +1,23 @@
+.venv
+backend/.env.django
+backend/.env.db
+backend/.env.redis
+backend/.env.local
+.idea/
+static/
+
+# Python cache & compiled files
+__pycache__/
+*.py[cod]
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+.eggs/
