@@ -5,6 +5,7 @@ backend/.env.redis
 backend/.env.local
 .idea/
 static/
+node_modules/
 
 # Python cache & compiled files
 __pycache__/

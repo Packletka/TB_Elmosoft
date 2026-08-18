@@ -5,7 +5,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = []
@@ -14,12 +13,20 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="Talon",
             fields=[
-                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+                    ),
+                ),
                 ("institution", models.CharField(max_length=128)),
                 ("institution_address", models.CharField(blank=True, max_length=64)),
                 ("specialist", models.CharField(max_length=64)),
                 ("specialist_full_name", models.CharField(max_length=64)),
-                ("office", models.IntegerField(validators=[django.core.validators.MinValueValidator(1)])),
+                (
+                    "office",
+                    models.IntegerField(validators=[django.core.validators.MinValueValidator(1)]),
+                ),
                 ("date_and_time", models.DateTimeField()),
                 ("patient", models.CharField(max_length=64)),
             ],
