@@ -16,7 +16,6 @@ dependencies = [
     "redis==8.0.0",
     "uv==0.12.3",
     "whitenoise==6.12.0",
-    "pre_commit==4.6.2",
     "ruff==0.16.3",
 ]
 
@@ -29,13 +28,23 @@ dependencies = [
 #build-backend = "uv_build"
 #module-name = "backend"
 
+[dependency-groups]
+dev = [
+    "pre-commit>=4.6.0"
+]
 
 [tool.ruff]
 line-length = 100
 target-version = "py312"
 
 [tool.ruff.lint]
-extend-select = ["E501"]
+extend-select = [
+    "E501",
+    "I",
+    "DJ", # https://docs.astral.sh/ruff/rules/#flake8-django-dj
+    "B", # https://docs.astral.sh/ruff/rules/#flake8-bugbear-b
+    "SIM", # https://docs.astral.sh/ruff/rules/#flake8-simplify-sim
+]
 
 [tool.ruff.lint.per-file-ignores]
 "*/migrations/*" = ["RUF012", "E501"]
