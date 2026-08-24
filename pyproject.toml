@@ -19,6 +19,7 @@ dependencies = [
     "django-phonenumber-field==8.5.0",
     "phonenumberslite==9.0.37",
     "pillow==12.3.0",
+    "djangorestframework-simplejwt==5.5.1",
 ]
 
 # Commented out in order to avoid an error like
@@ -37,7 +38,7 @@ dev = [
 ]
 
 [tool.ruff]
-line-length = 100
+line-length = 120
 target-version = "py312"
 
 [tool.ruff.lint]
