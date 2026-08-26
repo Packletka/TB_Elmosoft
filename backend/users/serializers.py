@@ -177,3 +177,62 @@ class RepresentativeSerializer(ModelSerializer):
             "user",
             "health_organisation",
         )
+
+
+class UpdateMeSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=False)
+    first_name = serializers.CharField(required=False)
+    last_name = serializers.CharField(required=False)
+    patronymic = serializers.CharField(required=False, allow_blank=True)
+    password = serializers.CharField(write_only=True, required=False)
+
+    profile = serializers.DictField(required=False)
+
+    def validate_email(self, value):
+        user = self.context["request"].user
+        if CustomUser.objects.exclude(pk=user.pk).filter(email=value).exists():
+            raise serializers.ValidationError("A user with this email already exists.")
+        return value
+
+    @transaction.atomic
+    def update(self, instance, validated_data):
+        instance.email = validated_data.get("email", instance.email)
+        instance.first_name = validated_data.get("first_name", instance.first_name)
+        instance.last_name = validated_data.get("last_name", instance.last_name)
+        instance.patronymic = validated_data.get("patronymic", instance.patronymic)
+
+        if "password" in validated_data:
+            instance.set_password(validated_data["password"])
+
+        instance.save()
+
+        # updating th profile
+        profile_data = validated_data.get("profile", {})
+        if profile_data:
+            if hasattr(instance, "customer"):
+                customer = instance.customer
+                allowed_fields = {"sex", "birthday", "phone", "address"}
+                for key, value in profile_data.items():
+                    if key in allowed_fields:
+                        setattr(customer, key, value)
+                customer.save()
+
+            elif hasattr(instance, "doctor"):
+                doctor = instance.doctor
+                allowed_fields = {"position", "cabinet", "work_schedule", "slot_duration"}
+                if "health_organisation" in profile_data:
+                    pass
+                for key, value in profile_data.items():
+                    if key in allowed_fields:
+                        setattr(doctor, key, value)
+                doctor.save()
+
+            elif hasattr(instance, "representative"):
+                # rep = instance.representative
+                if "health_organisation" in profile_data:
+                    pass
+
+        return instance
+
+    def to_representation(self, instance):
+        return MeSerializer(instance).data

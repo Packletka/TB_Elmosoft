@@ -12,6 +12,7 @@ from .serializers import (
     MeSerializer,
     RegisterSerializer,
     RepresentativeSerializer,
+    UpdateMeSerializer,
 )
 
 
@@ -29,7 +30,7 @@ class CustomUserViewSet(
     def get_permissions(self):
         if self.action == "register":
             return [AllowAny()]
-        elif self.action == "me":
+        elif self.action in ["me", "update_me", "delete_me"]:
             return [IsAuthenticated()]
         return [IsAdminUser()]
 
@@ -43,6 +44,21 @@ class CustomUserViewSet(
     def me(self, request):
         serializer = MeSerializer(request.user)
         return Response(serializer.data)
+
+    @action(detail=False, methods=["PUT", "PATCH"])
+    def update_me(self, request):
+        serializer = UpdateMeSerializer(
+            instance=request.user, data=request.data, partial=request.method == "PATCH", context={"request": request}
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+    @action(detail=False, methods=["DELETE"])
+    def delete_me(self, request):
+        user = request.user
+        user.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class CustomerViewSet(
