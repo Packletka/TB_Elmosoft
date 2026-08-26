@@ -16,7 +16,9 @@ class TalonViewSet(ModelViewSet):
         if not user.is_authenticated:
             return Talons.objects.filter(customer__isnull=True)
 
-        base_queryset = Talons.objects.filter(Q(customer=user) | Q(customer__isnull=True))
+        base_queryset = Talons.objects.select_related("doctor__health_organisation").filter(
+            Q(customer=user) | Q(customer__isnull=True)
+        )
 
         date = self.request.query_params.get("date", "")
         time = self.request.query_params.get("time", "")
@@ -24,8 +26,9 @@ class TalonViewSet(ModelViewSet):
         active = self.request.query_params.get("active", "")
 
         if active in ["true", "on", "yes", "1"]:
-            cur_date = datetime.now(tz=UTC).date()
-            cur_time = datetime.now(tz=UTC).time()
+            now = datetime.now(tz=UTC)
+            cur_date = now.date()
+            cur_time = now.time()
             # override the queryset to future usage
             base_queryset = base_queryset.filter(Q(date__gt=cur_date) | Q(date=cur_date) & Q(time__gte=cur_time))
 

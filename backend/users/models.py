@@ -68,7 +68,7 @@ class Doctor(models.Model):
 
     position = models.CharField(max_length=150, blank=False)
     cabinet = models.IntegerField(validators=[MinValueValidator(1)])
-    work_schedule = models.TextField()
+    work_schedule = models.JSONField()
     slot_duration = models.IntegerField(validators=[MinValueValidator(1)])
 
     def __str__(self):
