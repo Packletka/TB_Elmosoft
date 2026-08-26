@@ -1,4 +1,4 @@
-from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.core.validators import MinValueValidator
 from django.db import models
 from health_organisations.models import HealthOrganisation
@@ -23,7 +23,9 @@ class UserManager(BaseUserManager):
         return self.create_user(email, password, **kwargs)
 
 
-class CustomUser(AbstractBaseUser):
+# from stackoverflow to prevent this error -> 'CustomUser' object has no attribute 'has_module_perms'
+# inherited PermissionsMixin. Actually works!
+class CustomUser(AbstractBaseUser, PermissionsMixin):
     last_name = models.CharField(max_length=30, blank=False, null=False)
     first_name = models.CharField(max_length=30, blank=False, null=False)
     patronymic = models.CharField(max_length=50, blank=True)

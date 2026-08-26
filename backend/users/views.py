@@ -1,3 +1,7 @@
+from rest_framework import mixins, status, viewsets
+from rest_framework.decorators import action
+from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
+from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
 from .models import Customer, CustomUser, Doctor, Representative
@@ -5,25 +9,60 @@ from .serializers import (
     CustomerSerializer,
     CustomUserSerializer,
     DoctorSerializer,
+    MeSerializer,
+    RegisterSerializer,
     RepresentativeSerializer,
 )
 
 
-class CustomUserViewSet(ModelViewSet):
+class CustomUserViewSet(
+    mixins.RetrieveModelMixin,
+    mixins.CreateModelMixin,
+    mixins.UpdateModelMixin,
+    mixins.DestroyModelMixin,
+    mixins.ListModelMixin,
+    viewsets.GenericViewSet,
+):
     serializer_class = CustomUserSerializer
     queryset = CustomUser.objects.all()
 
+    def get_permissions(self):
+        if self.action == "register":
+            return [AllowAny()]
+        elif self.action == "me":
+            return [IsAuthenticated()]
+        return [IsAdminUser()]
 
-class CustomerViewSet(ModelViewSet):
+    @action(detail=False, methods=["POST"])
+    def register(self, request):
+        serializer = RegisterSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=["GET"])
+    def me(self, request):
+        serializer = MeSerializer(request.user)
+        return Response(serializer.data)
+
+
+class CustomerViewSet(
+    mixins.RetrieveModelMixin, mixins.UpdateModelMixin, mixins.DestroyModelMixin, viewsets.GenericViewSet
+):
     serializer_class = CustomerSerializer
     queryset = Customer.objects.all()
+
+    permission_classes = (IsAdminUser,)
 
 
 class DoctorViewSet(ModelViewSet):
     serializer_class = DoctorSerializer
     queryset = Doctor.objects.all()
 
+    permission_classes = (IsAdminUser,)
+
 
 class RepresentativeViewSet(ModelViewSet):
     serializer_class = RepresentativeSerializer
     queryset = Representative.objects.all()
+
+    permission_classes = (IsAdminUser,)
