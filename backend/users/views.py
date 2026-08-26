@@ -38,6 +38,7 @@ class CustomUserViewSet(
     def register(self, request):
         serializer = RegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @action(detail=False, methods=["GET"])
