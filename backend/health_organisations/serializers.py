@@ -6,4 +6,4 @@ from .models import HealthOrganisation
 class HealthOrganisationSerializer(ModelSerializer):
     class Meta:
         model = HealthOrganisation
-        fields = ("id", "name", "address", "general_info", "phone", "email", "site", "schedule")
+        fields = "__all__"

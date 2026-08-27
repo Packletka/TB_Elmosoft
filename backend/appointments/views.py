@@ -17,7 +17,7 @@ class TalonViewSet(ModelViewSet):
             return Talons.objects.filter(customer__isnull=True)
 
         base_queryset = Talons.objects.select_related("doctor__health_organisation").filter(
-            Q(customer=user) | Q(customer__isnull=True)
+            Q(customer__user=user) | Q(customer__isnull=True)  # <-- FIXED: use customer__user
         )
 
         date = self.request.query_params.get("date", "")
@@ -39,3 +39,8 @@ class TalonViewSet(ModelViewSet):
         elif time:
             return base_queryset.filter(date=datetime.now(tz=UTC).date(), time__gte=time)
         return base_queryset
+
+    def perform_create(self, serializer):
+        # Automatically assign the current user's Customer to the appointment
+        customer = self.request.user.customer
+        serializer.save(customer=customer)

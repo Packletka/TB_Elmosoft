@@ -3,7 +3,7 @@ from typing import ClassVar
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from rest_framework import serializers
-from rest_framework.serializers import ModelSerializer
+from rest_framework.serializers import ModelSerializer, Serializer
 
 from .models import (
     Customer,
@@ -14,7 +14,7 @@ from .models import (
 CustomUser = get_user_model()
 
 
-class RegisterSerializer(serializers.Serializer):
+class RegisterSerializer(Serializer):
     email = serializers.EmailField(required=True)
     password = serializers.CharField(write_only=True, required=True)
     first_name = serializers.CharField(required=True)
@@ -78,7 +78,7 @@ class RegisterSerializer(serializers.Serializer):
         }
 
 
-class MeSerializer(serializers.Serializer):
+class MeSerializer(Serializer):
     id = serializers.IntegerField()
     email = serializers.EmailField()
     first_name = serializers.CharField()
@@ -88,7 +88,9 @@ class MeSerializer(serializers.Serializer):
     profile = serializers.SerializerMethodField()
 
     def get_role(self, obj):
-        if hasattr(obj, "customer"):
+        if obj.is_superuser or obj.is_staff:
+            return "admin"
+        elif hasattr(obj, "customer"):
             return "customer"
         elif hasattr(obj, "doctor"):
             return "doctor"
@@ -127,19 +129,30 @@ class CustomUserSerializer(ModelSerializer):
 
     class Meta:
         model = CustomUser
-        fields = (
-            "id",
-            "email",
-            "password",
-            "first_name",
-            "last_name",
-            "patronymic",
-        )
+        fields = ("id", "email", "password", "first_name", "last_name", "patronymic")
         extra_kwargs: ClassVar = {
             "email": {"required": True},
             "first_name": {"required": True},
             "last_name": {"required": True},
         }
+
+    # если не добавить update & create - будет ошибка 401
+    def create(self, validated_data):
+        password = validated_data.pop("password", None)
+        user = CustomUser(**validated_data)
+        if password:
+            user.set_password(password)
+        user.save()
+        return user
+
+    def update(self, instance, validated_data):
+        password = validated_data.pop("password", None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        if password:
+            instance.set_password(password)
+        instance.save()
+        return instance
 
 
 class CustomerSerializer(ModelSerializer):
@@ -179,14 +192,33 @@ class RepresentativeSerializer(ModelSerializer):
         )
 
 
-class UpdateMeSerializer(serializers.Serializer):
+class CustomerProfileSerializer(ModelSerializer):
+    class Meta:
+        model = Customer
+        fields = ("sex", "birthday", "phone", "address")
+        extra_kwargs: ClassVar = {field: {"required": False} for field in fields}
+
+
+class DoctorProfileSerializer(ModelSerializer):
+    class Meta:
+        model = Doctor
+        fields = ("position", "cabinet", "work_schedule", "slot_duration", "health_organisation")
+        extra_kwargs: ClassVar = {field: {"required": False} for field in fields}
+
+
+class RepresentativeProfileSerializer(ModelSerializer):
+    class Meta:
+        model = Representative
+        fields = ("health_organisation",)
+        extra_kwargs: ClassVar = {"health_organisation": {"required": False, "allow_null": True}}
+
+
+class UserUpdateSerializer(Serializer):
     email = serializers.EmailField(required=False)
     first_name = serializers.CharField(required=False)
     last_name = serializers.CharField(required=False)
     patronymic = serializers.CharField(required=False, allow_blank=True)
     password = serializers.CharField(write_only=True, required=False)
-
-    profile = serializers.DictField(required=False)
 
     def validate_email(self, value):
         user = self.context["request"].user
@@ -205,34 +237,79 @@ class UpdateMeSerializer(serializers.Serializer):
             instance.set_password(validated_data["password"])
 
         instance.save()
-
-        # updating th profile
-        profile_data = validated_data.get("profile", {})
-        if profile_data:
-            if hasattr(instance, "customer"):
-                customer = instance.customer
-                allowed_fields = {"sex", "birthday", "phone", "address"}
-                for key, value in profile_data.items():
-                    if key in allowed_fields:
-                        setattr(customer, key, value)
-                customer.save()
-
-            elif hasattr(instance, "doctor"):
-                doctor = instance.doctor
-                allowed_fields = {"position", "cabinet", "work_schedule", "slot_duration"}
-                if "health_organisation" in profile_data:
-                    pass
-                for key, value in profile_data.items():
-                    if key in allowed_fields:
-                        setattr(doctor, key, value)
-                doctor.save()
-
-            elif hasattr(instance, "representative"):
-                # rep = instance.representative
-                if "health_organisation" in profile_data:
-                    pass
-
         return instance
 
     def to_representation(self, instance):
         return MeSerializer(instance).data
+
+
+class CustomerUpdateSerializer(UserUpdateSerializer):
+    profile = CustomerProfileSerializer(required=False)
+
+    @transaction.atomic
+    def update(self, instance, validated_data):
+        instance = super().update(instance, validated_data)
+
+        profile_data = validated_data.get("profile", {})
+
+        if not profile_data:
+            return instance
+
+        # No customer attached to this instance
+        if not hasattr(instance, "customer"):
+            return instance
+
+        customer = instance.customer
+        serializer = CustomerProfileSerializer(customer, data=profile_data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return instance
+
+
+class DoctorUpdateSerializer(UserUpdateSerializer):
+    profile = DoctorProfileSerializer(required=False)
+
+    @transaction.atomic
+    def update(self, instance, validated_data):
+        instance = super().update(instance, validated_data)
+
+        profile_data = validated_data.get("profile", {})
+
+        if not profile_data:
+            return instance
+
+        # No doctor attached to this user
+        if not hasattr(instance, "doctor"):
+            return instance
+
+        doctor = instance.doctor
+        serializer = DoctorProfileSerializer(doctor, data=profile_data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return instance
+
+
+class RepresentativeUpdateSerializer(UserUpdateSerializer):
+    profile = RepresentativeProfileSerializer(required=False)
+
+    @transaction.atomic
+    def update(self, instance, validated_data):
+        instance = super().update(instance, validated_data)
+
+        profile_data = validated_data.get("profile", {})
+
+        if not profile_data:
+            return instance
+
+        # No representative attached to this user
+        if not hasattr(instance, "representative"):
+            return instance
+
+        rep = instance.representative
+        serializer = RepresentativeProfileSerializer(rep, data=profile_data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return instance

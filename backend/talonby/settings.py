@@ -150,7 +150,7 @@ REST_FRAMEWORK = {"DEFAULT_AUTHENTICATION_CLASSES": ("rest_framework_simplejwt.a
 
 # from official simplejwt docs
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(seconds=300),  # how long access tokens are valid
+    "ACCESS_TOKEN_LIFETIME": timedelta(seconds=86400),  # how long access tokens are valid
     "REFRESH_TOKEN_LIFETIME": timedelta(seconds=86400),  # how long refresh tokens are valid
     "ROTATE_REFRESH_TOKENS": False,
     "BLACKLIST_AFTER_ROTATION": False,
@@ -175,7 +175,7 @@ SIMPLE_JWT = {
     "TOKEN_USER_CLASS": "rest_framework_simplejwt.models.TokenUser",
     "JTI_CLAIM": "jti",
     "SLIDING_TOKEN_REFRESH_EXP_CLAIM": "refresh_exp",
-    "SLIDING_TOKEN_LIFETIME": timedelta(seconds=300),
+    "SLIDING_TOKEN_LIFETIME": timedelta(seconds=86400),
     "SLIDING_TOKEN_REFRESH_LIFETIME": timedelta(seconds=86400),
     "TOKEN_OBTAIN_SERIALIZER": "rest_framework_simplejwt.serializers.TokenObtainPairSerializer",
     "TOKEN_REFRESH_SERIALIZER": "rest_framework_simplejwt.serializers.TokenRefreshSerializer",
@@ -187,3 +187,5 @@ SIMPLE_JWT = {
     "REVOKE_TOKEN_CLAIM": "hash_password",
     "CHECK_USER_IS_ACTIVE": True,
 }
+
+APPEND_SLASH = False

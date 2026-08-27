@@ -56,7 +56,7 @@ class Customer(models.Model):
     sex = models.CharField(max_length=1, choices=SEX, blank=False)
     birthday = models.DateField()
     phone = PhoneNumberField(default="", blank=False, region="BY")
-    address = models.TextField(blank=True, default="")
+    address = models.CharField(max_length=150, blank=True, default="")
 
     def __str__(self):
         return f"{self.user.last_name} {self.user.first_name}"

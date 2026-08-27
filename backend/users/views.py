@@ -5,14 +5,18 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
 from .models import Customer, CustomUser, Doctor, Representative
+from .permissions import IsAdminOrRepresentativeForDoctor
 from .serializers import (
     CustomerSerializer,
+    CustomerUpdateSerializer,
     CustomUserSerializer,
     DoctorSerializer,
+    DoctorUpdateSerializer,
     MeSerializer,
     RegisterSerializer,
     RepresentativeSerializer,
-    UpdateMeSerializer,
+    RepresentativeUpdateSerializer,
+    UserUpdateSerializer,
 )
 
 
@@ -24,10 +28,12 @@ class CustomUserViewSet(
     mixins.ListModelMixin,
     viewsets.GenericViewSet,
 ):
+    lookup_value_regex = "[0-9]+"
     serializer_class = CustomUserSerializer
     queryset = CustomUser.objects.all()
 
     def get_permissions(self):
+        print(f"DEBUG: action = {self.action}")
         if self.action == "register":
             return [AllowAny()]
         elif self.action in ["me", "update_me", "delete_me"]:
@@ -48,11 +54,40 @@ class CustomUserViewSet(
 
     @action(detail=False, methods=["PUT", "PATCH"])
     def update_me(self, request):
-        serializer = UpdateMeSerializer(
-            instance=request.user, data=request.data, partial=request.method == "PATCH", context={"request": request}
+        user = request.user
+        print(f"DEBUG: User={user.email}, has_customer={hasattr(user, 'customer')}")
+
+        if hasattr(user, "customer"):
+            serializer_class = CustomerUpdateSerializer
+        elif hasattr(user, "doctor"):
+            serializer_class = DoctorUpdateSerializer
+        elif hasattr(user, "representative"):
+            serializer_class = RepresentativeUpdateSerializer
+        else:
+            serializer_class = UserUpdateSerializer
+
+        print(f"DEBUG: serializer_class={serializer_class.__name__}")
+
+        print(f"DEBUG: class has update() = {hasattr(serializer_class, 'update')}")
+
+        serializer = serializer_class(
+            instance=user, data=request.data, partial=request.method == "PATCH", context={"request": request}
         )
+
+        print(f"DEBUG: instance has update() = {hasattr(serializer, 'update')}")
+        print(f"DEBUG: instance type = {type(serializer)}")
+
+        if hasattr(serializer, "update"):
+            print(f"DEBUG: update method = {serializer.update}")
+        else:
+            print("DEBUG: update method is MISSING on instance!")
+
         serializer.is_valid(raise_exception=True)
-        serializer.save()
+        print(f"DEBUG: valid data = {serializer.validated_data}")
+
+        result = serializer.save()
+        print(f"DEBUG: save result = {result}")
+
         return Response(serializer.data)
 
     @action(detail=False, methods=["DELETE"])
@@ -73,9 +108,18 @@ class CustomerViewSet(
 
 class DoctorViewSet(ModelViewSet):
     serializer_class = DoctorSerializer
-    queryset = Doctor.objects.all()
+    permission_classes = (IsAdminOrRepresentativeForDoctor,)
 
-    permission_classes = (IsAdminUser,)
+    def get_queryset(self):
+        user = self.request.user
+        queryset = Doctor.objects.all()
+
+        # If representative -> filter to their organization
+        if user.is_authenticated and hasattr(user, "representative"):
+            rep_org = user.representative.health_organisation
+            queryset = queryset.filter(health_organisation=rep_org)
+
+        return queryset
 
 
 class RepresentativeViewSet(ModelViewSet):
