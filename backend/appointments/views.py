@@ -31,6 +31,11 @@ class TalonViewSet(ModelViewSet):
             cur_time = now.time()
             # override the queryset to future usage
             base_queryset = base_queryset.filter(Q(date__gt=cur_date) | Q(date=cur_date) & Q(time__gte=cur_time))
+        elif active in ["false", "off", "no", "0"]:
+            now = datetime.now(tz=UTC)
+            cur_date = now.date()
+            cur_time = now.time()
+            base_queryset = base_queryset.filter(Q(date__lt=cur_date) | (Q(date=cur_date) & Q(time__lt=cur_time)))
 
         if date and time:
             return base_queryset.filter(Q(date__gt=date) | Q(date=date) & Q(time__gte=time))
