@@ -12,4 +12,6 @@ urlpatterns = [
     path("api/v1/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("api/v1/token/blacklist/", TokenBlacklistView.as_view(), name="token_blacklist"),
     path("api/v1/", include("users.urls")),
+    path("api/v1/", include("appointments.urls")),
+    path("api/v1/", include("health_organisations.urls")),
 ]
