@@ -1,10 +1,15 @@
 import { Link as RouterLink, useParams } from "react-router-dom";
+import { useState } from "react";
+
+import type { Dayjs } from "dayjs";
 
 import Avatar from "@mui/material/Avatar";
 import Container from "@mui/material/Container";
 import Link from "@mui/material/Link";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import { DateCalendar } from "@mui/x-date-pickers/DateCalendar";
+import Button from "@mui/material/Button";
 
 import { doctors } from "../../mocks/doctors";
 import { getPluralPosition } from "../../utils/position";
@@ -13,6 +18,9 @@ import { talons } from "../../mocks/appointments";
 
 function DoctorPage() {
   const { doctorId } = useParams();
+  /* starts as null, meaning:
+  user has not selected a date yet */
+  const [selectedDate, setSelectedDate] = useState<Dayjs | null>(null);
 
   const doctor = doctors.find((doctor) => doctor.id === Number(doctorId));
 
@@ -32,6 +40,14 @@ function DoctorPage() {
   );
 
   const availableDates = [...new Set(freeTalons.map((talon) => talon.date))];
+
+  const availableDateSet = new Set(availableDates);
+
+  const selectedDateString = selectedDate?.format("YYYY-MM-DD");
+
+  const selectedDateTalons = selectedDateString
+    ? freeTalons.filter((talon) => talon.date === selectedDateString)
+    : [];
 
   const initials =
     `${doctor.first_name.charAt(0)}${doctor.last_name.charAt(0)}`.toUpperCase();
@@ -106,6 +122,49 @@ function DoctorPage() {
           ))
         ) : (
           <Typography color="text.secondary">No available dates.</Typography>
+        )}
+      </Stack>
+
+      <Stack spacing={2}>
+        <Typography variant="h6" component="h2">
+          Available appointments
+        </Typography>
+
+        {availableDates.length > 0 ? (
+          <>
+            <DateCalendar
+              value={selectedDate}
+              onChange={(newDate) => setSelectedDate(newDate)}
+              shouldDisableDate={(day) =>
+                !availableDateSet.has(day.format("YYYY-MM-DD"))
+              }
+            />
+
+            {selectedDate && (
+              <Stack spacing={2}>
+                <Typography variant="h6" component="h3">
+                  Available times
+                </Typography>
+
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  useFlexGap
+                  sx={{ flexWrap: "wrap" }}
+                >
+                  {selectedDateTalons.map((talon) => (
+                    <Button key={talon.id} variant="outlined">
+                      {talon.time}
+                    </Button>
+                  ))}
+                </Stack>
+              </Stack>
+            )}
+          </>
+        ) : (
+          <Typography color="text.secondary">
+            This doctor has no available talons at the moment.
+          </Typography>
         )}
       </Stack>
     </Container>
