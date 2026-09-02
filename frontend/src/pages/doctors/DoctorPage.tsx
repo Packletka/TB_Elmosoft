@@ -1,7 +1,11 @@
-import { Link as RouterLink, useParams } from "react-router-dom";
-import { useState } from "react";
+import {
+  Link as RouterLink,
+  useParams,
+  useSearchParams,
+} from "react-router-dom";
 
-import type { Dayjs } from "dayjs";
+import dayjs from "dayjs";
+import customParseFormat from "dayjs/plugin/customParseFormat";
 
 import Avatar from "@mui/material/Avatar";
 import Container from "@mui/material/Container";
@@ -10,17 +14,18 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { DateCalendar } from "@mui/x-date-pickers/DateCalendar";
 import Button from "@mui/material/Button";
+import Alert from "@mui/material/Alert";
 
 import { doctors } from "../../mocks/doctors";
 import { getPluralPosition } from "../../utils/position";
 import ResourceNotFound from "../../components/ui/ResourceNotFound";
 import { talons } from "../../mocks/appointments";
 
+dayjs.extend(customParseFormat);
+
 function DoctorPage() {
   const { doctorId } = useParams();
-  /* starts as null, meaning:
-  user has not selected a date yet */
-  const [selectedDate, setSelectedDate] = useState<Dayjs | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const doctor = doctors.find((doctor) => doctor.id === Number(doctorId));
 
@@ -42,6 +47,18 @@ function DoctorPage() {
   const availableDates = [...new Set(freeTalons.map((talon) => talon.date))];
 
   const availableDateSet = new Set(availableDates);
+
+  const dateParam = searchParams.get("date");
+
+  const parsedDateParam =
+    dateParam !== null ? dayjs(dateParam, "YYYY-MM-DD", true) : null;
+
+  const hasInvalidDateParam =
+    dateParam !== null &&
+    (!parsedDateParam?.isValid() || !availableDateSet.has(dateParam));
+
+  const selectedDate =
+    dateParam !== null && !hasInvalidDateParam ? parsedDateParam : null;
 
   const selectedDateString = selectedDate?.format("YYYY-MM-DD");
 
@@ -130,11 +147,35 @@ function DoctorPage() {
           Available appointments
         </Typography>
 
+        {hasInvalidDateParam && (
+          <Alert severity="warning">
+            The selected date is invalid or unavailable for this doctor.
+          </Alert>
+        )}
+
         {availableDates.length > 0 ? (
           <>
             <DateCalendar
               value={selectedDate}
-              onChange={(newDate) => setSelectedDate(newDate)}
+              onChange={(newDate) => {
+                if (!newDate) {
+                  return;
+                }
+
+                const newDateString = newDate.format("YYYY-MM-DD");
+
+                if (!availableDateSet.has(newDateString)) {
+                  return;
+                }
+
+                setSearchParams((previousParams) => {
+                  const nextParams = new URLSearchParams(previousParams);
+
+                  nextParams.set("date", newDateString);
+
+                  return nextParams;
+                });
+              }}
               shouldDisableDate={(day) =>
                 !availableDateSet.has(day.format("YYYY-MM-DD"))
               }
@@ -153,7 +194,12 @@ function DoctorPage() {
                   sx={{ flexWrap: "wrap" }}
                 >
                   {selectedDateTalons.map((talon) => (
-                    <Button key={talon.id} variant="outlined">
+                    <Button
+                      key={talon.id}
+                      variant="outlined"
+                      component={RouterLink}
+                      to={`/appointments/confirm/${talon.id}`}
+                    >
                       {talon.time}
                     </Button>
                   ))}

@@ -5,6 +5,8 @@ import OrganisationsPage from "../pages/organisations/OrganisationsPage";
 import NotFoundPage from "../pages/NotFoundPage";
 import DoctorsPage from "../pages/doctors/DoctorsPage";
 import DoctorPage from "../pages/doctors/DoctorPage";
+import AppointmentConfirmationPage from "../pages/appointments/AppointmentConfirmationPage";
+import AppointmentSuccessPage from "../pages/appointments/AppointmentSuccessPage";
 
 export const router = createBrowserRouter([
   {
@@ -22,6 +24,14 @@ export const router = createBrowserRouter([
   {
     path: "/doctors/:doctorId",
     element: <DoctorPage />,
+  },
+  {
+    path: "/appointments/confirm/:talonId",
+    element: <AppointmentConfirmationPage />,
+  },
+  {
+    path: "/appointments/success/:talonId",
+    element: <AppointmentSuccessPage />,
   },
   {
     path: "*",
