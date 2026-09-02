@@ -8,13 +8,16 @@ import DoctorsPage from "../pages/doctors/DoctorsPage";
 
 import AppointmentConfirmationPage from "../pages/appointments/AppointmentConfirmationPage";
 import AppointmentSuccessPage from "../pages/appointments/AppointmentSuccessPage";
+import MyAppointmentsPage from "../pages/appointments/MyAppointmentsPage";
+
+import ProfilePage from "../pages/profile/ProfilePage";
+
+import LoginPage from "../pages/auth/LoginPage";
+import RegisterPage from "../pages/auth/RegisterPage";
 
 import NotFoundPage from "../pages/NotFoundPage";
 
 import Layout from "../components/layout/Layout";
-
-import LoginPage from "../pages/auth/LoginPage";
-import RegisterPage from "../pages/auth/RegisterPage";
 
 import { isMockAuthenticated } from "../mocks/auth";
 
@@ -39,6 +42,14 @@ export const router = createBrowserRouter([
   {
     element: <Layout />,
     children: [
+      {
+        path: "/appointments",
+        element: <MyAppointmentsPage />,
+      },
+      {
+        path: "/profile",
+        element: <ProfilePage />,
+      },
       {
         path: "/register",
         element: <RegisterPage />,

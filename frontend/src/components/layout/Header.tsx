@@ -1,11 +1,27 @@
-import { Link as RouterLink } from "react-router-dom";
+import { Link as RouterLink, useLocation, useNavigate } from "react-router-dom";
 
 import AppBar from "@mui/material/AppBar";
 import Button from "@mui/material/Button";
+import Stack from "@mui/material/Stack";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
 
+import { clearMockAuthentication, isMockAuthenticated } from "../../mocks/auth";
+
 function Header() {
+  useLocation();
+  const navigate = useNavigate();
+
+  const isAuthenticated = isMockAuthenticated();
+
+  const handleSignOut = () => {
+    clearMockAuthentication();
+
+    navigate("/organisations", {
+      replace: true,
+    });
+  };
+
   return (
     <AppBar position="static">
       <Toolbar>
@@ -22,24 +38,41 @@ function Header() {
           Health App
         </Typography>
 
-        <Button
-          color="inherit"
-          component={RouterLink}
-          to="/login"
-          variant="outlined"
-          sx={{ mr: 1 }}
-        >
-          Sign in
-        </Button>
+        {isAuthenticated ? (
+          <Stack direction="row" spacing={1}>
+            <Button color="inherit" component={RouterLink} to="/appointments">
+              My appointments
+            </Button>
 
-        <Button
-          color="inherit"
-          component={RouterLink}
-          to="/register"
-          variant="contained"
-        >
-          Sign up
-        </Button>
+            <Button color="inherit" component={RouterLink} to="/profile">
+              Profile
+            </Button>
+
+            <Button color="inherit" variant="outlined" onClick={handleSignOut}>
+              Sign out
+            </Button>
+          </Stack>
+        ) : (
+          <Stack direction="row" spacing={1}>
+            <Button
+              color="inherit"
+              component={RouterLink}
+              to="/login"
+              variant="outlined"
+            >
+              Sign in
+            </Button>
+
+            <Button
+              color="inherit"
+              component={RouterLink}
+              to="/register"
+              variant="contained"
+            >
+              Sign up
+            </Button>
+          </Stack>
+        )}
       </Toolbar>
     </AppBar>
   );
