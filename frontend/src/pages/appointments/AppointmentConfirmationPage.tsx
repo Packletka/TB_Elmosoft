@@ -1,4 +1,5 @@
-import { Link as RouterLink, useParams } from "react-router-dom";
+import { useState } from "react";
+import { Link as RouterLink, useNavigate, useParams } from "react-router-dom";
 
 import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
@@ -6,14 +7,20 @@ import Container from "@mui/material/Container";
 import Divider from "@mui/material/Divider";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import Avatar from "@mui/material/Avatar";
 
 import ResourceNotFound from "../../components/ui/ResourceNotFound";
-import { talons } from "../../mocks/appointments";
+import { bookMockTalon, talons } from "../../mocks/appointments";
 import { doctors } from "../../mocks/doctors";
 import { organisations } from "../../mocks/organisations";
+import { customers } from "../../mocks/customers";
+import { getMockCurrentCustomerId } from "../../mocks/auth";
 
 function AppointmentConfirmationPage() {
   const { talonId } = useParams();
+  const navigate = useNavigate();
+
+  const [bookingError, setBookingError] = useState<string | null>(null);
 
   const talon = talons.find((talon) => talon.id === Number(talonId));
 
@@ -56,6 +63,50 @@ function AppointmentConfirmationPage() {
     );
   }
 
+  const currentCustomerId = getMockCurrentCustomerId();
+
+  const customer = customers.find(
+    (customer) => customer.id === currentCustomerId,
+  );
+
+  if (!customer) {
+    return (
+      <ResourceNotFound
+        title="Customer not found"
+        message="The authenticated customer could not be found."
+        backTo="/organisations"
+        backLabel="Back to Health Organisations"
+      />
+    );
+  }
+
+  const handleConfirmAppointment = () => {
+    setBookingError(null);
+
+    const bookedTalon = bookMockTalon(talon.id, customer.id);
+
+    if (!bookedTalon) {
+      setBookingError("This talon is no longer available.");
+
+      return;
+    }
+
+    navigate(`/appointments/success/${bookedTalon.id}`, {
+      replace: true,
+    });
+  };
+
+  const customerInitials =
+    `${customer.first_name[0]}${customer.last_name[0]}`.toUpperCase();
+
+  const customerFullName = [
+    customer.last_name,
+    customer.first_name,
+    customer.patronymic,
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   const isAvailable = talon.customer === null;
 
   return (
@@ -68,6 +119,26 @@ function AppointmentConfirmationPage() {
         {!isAvailable && (
           <Alert severity="warning">This talon is no longer available.</Alert>
         )}
+
+        <Stack spacing={2}>
+          <Typography variant="body2" color="text.secondary">
+            Patient
+          </Typography>
+
+          <Stack direction="row" spacing={2} alignItems="center">
+            <Avatar>{customerInitials}</Avatar>
+
+            <Stack spacing={0.5}>
+              <Typography variant="h6">{customerFullName}</Typography>
+
+              <Typography variant="body2" color="text.secondary">
+                {customer.email}
+              </Typography>
+            </Stack>
+          </Stack>
+        </Stack>
+
+        <Divider />
 
         <Stack spacing={1}>
           <Typography variant="body2" color="text.secondary">
@@ -123,6 +194,8 @@ function AppointmentConfirmationPage() {
           <Typography>{talon.time}</Typography>
         </Stack>
 
+        {bookingError && <Alert severity="error">{bookingError}</Alert>}
+
         <Stack direction="row" spacing={2}>
           <Button
             variant="outlined"
@@ -134,8 +207,7 @@ function AppointmentConfirmationPage() {
 
           <Button
             variant="contained"
-            component={RouterLink}
-            to={`/appointments/success/${talon.id}`}
+            onClick={handleConfirmAppointment}
             disabled={!isAvailable}
           >
             Confirm appointment

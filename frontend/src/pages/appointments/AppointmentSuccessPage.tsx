@@ -10,6 +10,7 @@ import ResourceNotFound from "../../components/ui/ResourceNotFound";
 import { talons } from "../../mocks/appointments";
 import { doctors } from "../../mocks/doctors";
 import { organisations } from "../../mocks/organisations";
+import { getMockCurrentCustomerId } from "../../mocks/auth";
 
 function AppointmentSuccessPage() {
   const { talonId } = useParams();
@@ -21,6 +22,19 @@ function AppointmentSuccessPage() {
       <ResourceNotFound
         title="Talon not found"
         message="The requested talon does not exist."
+        backTo="/organisations"
+        backLabel="Back to Health Organisations"
+      />
+    );
+  }
+
+  const currentCustomerId = getMockCurrentCustomerId();
+
+  if (talon.customer !== currentCustomerId) {
+    return (
+      <ResourceNotFound
+        title="Appointment not found"
+        message="This appointment does not belong to the current customer."
         backTo="/organisations"
         backLabel="Back to Health Organisations"
       />

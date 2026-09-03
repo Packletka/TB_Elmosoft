@@ -194,3 +194,33 @@ export const talons: Talon[] = [
     time: "12:30",
   },
 ];
+
+export function bookMockTalon(
+  talonId: number,
+  customerId: number,
+): Talon | null {
+  const talon = talons.find((talon) => talon.id === talonId);
+
+  if (!talon || talon.customer !== null) {
+    return null;
+  }
+
+  talon.customer = customerId;
+
+  return talon;
+}
+
+export function cancelMockTalon(
+  talonId: number,
+  customerId: number,
+): Talon | null {
+  const talon = talons.find((talon) => talon.id === talonId);
+
+  if (!talon || talon.customer !== customerId) {
+    return null;
+  }
+
+  talon.customer = null;
+
+  return talon;
+}

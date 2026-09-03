@@ -45,6 +45,7 @@ export const router = createBrowserRouter([
       {
         path: "/appointments",
         element: <MyAppointmentsPage />,
+        loader: requireMockAuthentication,
       },
       {
         path: "/profile",
@@ -82,6 +83,7 @@ export const router = createBrowserRouter([
       {
         path: "/appointments/success/:talonId",
         element: <AppointmentSuccessPage />,
+        loader: requireMockAuthentication,
       },
       {
         path: "*",
