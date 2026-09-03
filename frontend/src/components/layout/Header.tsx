@@ -6,13 +6,45 @@ import Stack from "@mui/material/Stack";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
 
-import { clearMockAuthentication, isMockAuthenticated } from "../../mocks/auth";
+import {
+  clearMockAuthentication,
+  getSafeReturnTo,
+  isMockAuthenticated,
+} from "../../mocks/auth";
 
 function Header() {
-  useLocation();
+  const location = useLocation();
   const navigate = useNavigate();
 
   const isAuthenticated = isMockAuthenticated();
+
+  const currentSearchParams = new URLSearchParams(location.search);
+
+  const reason = currentSearchParams.get("reason");
+
+  const rawReturnTo = currentSearchParams.get("returnTo");
+
+  const isAuthenticationPage =
+    location.pathname === "/login" || location.pathname === "/register";
+
+  const hasAuthenticationContext =
+    isAuthenticationPage &&
+    (reason === "appointment" || reason === "account") &&
+    rawReturnTo !== null;
+
+  const authSearchParams = new URLSearchParams();
+
+  if (hasAuthenticationContext) {
+    authSearchParams.set("reason", reason);
+
+    authSearchParams.set("returnTo", getSafeReturnTo(rawReturnTo));
+  }
+
+  const authQuery = authSearchParams.toString();
+
+  const loginUrl = authQuery ? `/login?${authQuery}` : "/login";
+
+  const registerUrl = authQuery ? `/register?${authQuery}` : "/register";
 
   const handleSignOut = () => {
     clearMockAuthentication();
@@ -57,7 +89,7 @@ function Header() {
             <Button
               color="inherit"
               component={RouterLink}
-              to="/login"
+              to={loginUrl}
               variant="outlined"
             >
               Sign in
@@ -66,7 +98,7 @@ function Header() {
             <Button
               color="inherit"
               component={RouterLink}
-              to="/register"
+              to={registerUrl}
               variant="contained"
             >
               Sign up

@@ -1,4 +1,4 @@
-import type { Customer } from "../types/customer";
+import type { Customer, CustomerSex } from "../types/customer";
 
 export const customers: Customer[] = [
   {
@@ -13,3 +13,27 @@ export const customers: Customer[] = [
     address: "Minsk",
   },
 ];
+
+export interface CustomerProfileUpdate {
+  last_name: string;
+  first_name: string;
+  patronymic: string;
+  sex: CustomerSex;
+  birthday: string;
+  address: string;
+}
+
+export function updateMockCustomerProfile(
+  customerId: number,
+  updates: CustomerProfileUpdate,
+): Customer | null {
+  const customer = customers.find((customer) => customer.id === customerId);
+
+  if (!customer) {
+    return null;
+  }
+
+  Object.assign(customer, updates);
+
+  return customer;
+}

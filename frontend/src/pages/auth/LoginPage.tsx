@@ -29,8 +29,10 @@ function LoginPage() {
 
   const registerSearchParams = new URLSearchParams();
 
-  if (isAppointmentRedirect) {
-    registerSearchParams.set("reason", "appointment");
+  const isAccountRedirect = reason === "account";
+
+  if (reason === "appointment" || reason === "account") {
+    registerSearchParams.set("reason", reason);
   }
 
   if (rawReturnTo) {
@@ -82,6 +84,12 @@ function LoginPage() {
             <Alert severity="info">
               To book an appointment with a doctor, please sign in or create an
               account.
+            </Alert>
+          )}
+
+          {isAccountRedirect && (
+            <Alert severity="info">
+              Please sign in or create an account to access this page.
             </Alert>
           )}
 

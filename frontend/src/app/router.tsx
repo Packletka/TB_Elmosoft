@@ -11,6 +11,8 @@ import AppointmentSuccessPage from "../pages/appointments/AppointmentSuccessPage
 import MyAppointmentsPage from "../pages/appointments/MyAppointmentsPage";
 
 import ProfilePage from "../pages/profile/ProfilePage";
+import EditProfilePage from "../pages/profile/EditProfilePage";
+import ProfileSettingsPage from "../pages/profile/ProfileSettingsPage";
 
 import LoginPage from "../pages/auth/LoginPage";
 import RegisterPage from "../pages/auth/RegisterPage";
@@ -21,21 +23,25 @@ import Layout from "../components/layout/Layout";
 
 import { isMockAuthenticated } from "../mocks/auth";
 
-function requireMockAuthentication({ request }: { request: Request }) {
-  if (isMockAuthenticated()) {
-    return null;
-  }
+type AuthReason = "appointment" | "account";
 
-  const url = new URL(request.url);
+function requireMockAuthentication(reason: AuthReason) {
+  return ({ request }: { request: Request }) => {
+    if (isMockAuthenticated()) {
+      return null;
+    }
 
-  const returnTo = `${url.pathname}${url.search}`;
+    const url = new URL(request.url);
 
-  const searchParams = new URLSearchParams({
-    reason: "appointment",
-    returnTo,
-  });
+    const returnTo = `${url.pathname}${url.search}`;
 
-  return redirect(`/login?${searchParams.toString()}`);
+    const searchParams = new URLSearchParams({
+      reason,
+      returnTo,
+    });
+
+    return redirect(`/login?${searchParams.toString()}`);
+  };
 }
 
 export const router = createBrowserRouter([
@@ -45,11 +51,22 @@ export const router = createBrowserRouter([
       {
         path: "/appointments",
         element: <MyAppointmentsPage />,
-        loader: requireMockAuthentication,
+        loader: requireMockAuthentication("account"),
       },
       {
         path: "/profile",
         element: <ProfilePage />,
+        loader: requireMockAuthentication("account"),
+      },
+      {
+        path: "/profile/edit",
+        element: <EditProfilePage />,
+        loader: requireMockAuthentication("account"),
+      },
+      {
+        path: "/profile/settings",
+        element: <ProfileSettingsPage />,
+        loader: requireMockAuthentication("account"),
       },
       {
         path: "/register",
@@ -78,12 +95,12 @@ export const router = createBrowserRouter([
       {
         path: "/appointments/confirm/:talonId",
         element: <AppointmentConfirmationPage />,
-        loader: requireMockAuthentication,
+        loader: requireMockAuthentication("appointment"),
       },
       {
         path: "/appointments/success/:talonId",
         element: <AppointmentSuccessPage />,
-        loader: requireMockAuthentication,
+        loader: requireMockAuthentication("appointment"),
       },
       {
         path: "*",

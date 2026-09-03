@@ -33,10 +33,12 @@ function RegisterPage() {
 
   const isAppointmentRedirect = reason === "appointment";
 
+  const isAccountRedirect = reason === "account";
+
   const loginSearchParams = new URLSearchParams();
 
-  if (isAppointmentRedirect) {
-    loginSearchParams.set("reason", "appointment");
+  if (reason === "appointment" || reason === "account") {
+    loginSearchParams.set("reason", reason);
   }
 
   if (rawReturnTo) {
@@ -102,6 +104,12 @@ function RegisterPage() {
             <Alert severity="info">
               To book an appointment with a doctor, please create an account or
               sign in.
+            </Alert>
+          )}
+
+          {isAccountRedirect && (
+            <Alert severity="info">
+              Please create an account or sign in to access this page.
             </Alert>
           )}
 
