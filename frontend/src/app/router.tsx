@@ -19,6 +19,7 @@ import ChangePasswordPage from "../pages/profile/ChangePasswordPage";
 
 import LoginPage from "../pages/auth/LoginPage";
 import RegisterPage from "../pages/auth/RegisterPage";
+import ForgotPasswordPage from "../pages/auth/ForgotPasswordPage";
 
 import NotFoundPage from "../pages/NotFoundPage";
 
@@ -78,6 +79,10 @@ export const router = createBrowserRouter([
       {
         path: "/login",
         element: <LoginPage />,
+      },
+      {
+        path: "/forgot-password",
+        element: <ForgotPasswordPage />,
       },
       {
         path: "/organisations",

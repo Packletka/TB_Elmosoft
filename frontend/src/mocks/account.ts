@@ -55,3 +55,21 @@ export function sendMockPasswordChangeNotification(email: string): void {
     `[mock email] Security notification sent to ${email}: password was changed`,
   );
 }
+
+const MOCK_PASSWORD_RECOVERY_CODE = "654321";
+
+export function sendMockPasswordRecoveryCode(email: string): void {
+  console.log(
+    `[mock email] Password recovery code sent to ${email}: ${MOCK_PASSWORD_RECOVERY_CODE}`,
+  );
+}
+
+export function verifyMockPasswordRecoveryCode(code: string): boolean {
+  return code === MOCK_PASSWORD_RECOVERY_CODE;
+}
+
+export function sendMockPasswordResetNotification(email: string): void {
+  console.log(
+    `[mock email] Security notification sent to ${email}: password was reset`,
+  );
+}

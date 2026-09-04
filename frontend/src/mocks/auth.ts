@@ -1,3 +1,6 @@
+import { verifyMockCurrentPassword } from "./account";
+import { customers } from "./customers";
+
 const MOCK_AUTH_KEY = "mock-authenticated";
 
 export const MOCK_CURRENT_CUSTOMER_ID = 6;
@@ -28,4 +31,23 @@ export function getSafeReturnTo(returnTo: string | null): string {
   }
 
   return returnTo;
+}
+
+export function verifyMockCredentials(
+  email: string,
+  password: string,
+): boolean {
+  const normalizedEmail = email.trim().toLowerCase();
+
+  const customer = customers.find(
+    (customer) =>
+      customer.id === MOCK_CURRENT_CUSTOMER_ID &&
+      customer.email.toLowerCase() === normalizedEmail,
+  );
+
+  if (!customer) {
+    return false;
+  }
+
+  return verifyMockCurrentPassword(password);
 }

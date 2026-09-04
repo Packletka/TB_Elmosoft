@@ -1,10 +1,15 @@
 import type { FormEvent } from "react";
+import { useState } from "react";
 import {
   Link as RouterLink,
   useNavigate,
   useSearchParams,
 } from "react-router-dom";
-import { getSafeReturnTo, mockAuthenticate } from "../../mocks/auth";
+import {
+  getSafeReturnTo,
+  mockAuthenticate,
+  verifyMockCredentials,
+} from "../../mocks/auth";
 
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -19,6 +24,8 @@ import Alert from "@mui/material/Alert";
 function LoginPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+
+  const [formError, setFormError] = useState<string | null>(null);
 
   const reason = searchParams.get("reason");
   const rawReturnTo = searchParams.get("returnTo");
@@ -48,26 +55,24 @@ function LoginPage() {
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
+    setFormError(null);
+
     const formData = new FormData(event.currentTarget);
 
-    const email = formData.get("email");
-    const password = formData.get("password");
+    const email = String(formData.get("email") ?? "");
 
-    console.log({
-      email,
-      password,
-    });
+    const password = String(formData.get("password") ?? "");
 
-    // Temporary mock authentication.
-    // Later this will become a real backend request.
+    if (!verifyMockCredentials(email, password)) {
+      setFormError("Email or password is incorrect.");
+      return;
+    }
+
     mockAuthenticate();
 
     navigate(returnTo, {
       replace: true,
     });
-
-    // Later:
-    // send email + password to backend
   };
 
   return (
@@ -92,6 +97,8 @@ function LoginPage() {
               Please sign in or create an account to access this page.
             </Alert>
           )}
+
+          {formError && <Alert severity="error">{formError}</Alert>}
 
           <Box>
             <Typography variant="h4" component="h1" gutterBottom>
