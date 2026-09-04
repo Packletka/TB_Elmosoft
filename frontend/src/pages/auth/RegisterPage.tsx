@@ -6,7 +6,9 @@ import {
   useSearchParams,
 } from "react-router-dom";
 
-import { getSafeReturnTo, mockAuthenticate } from "../../mocks/auth";
+import { getSafeReturnTo, registerMockCustomer } from "../../mocks/auth";
+
+import type { Customer, CustomerSex } from "../../types/customer";
 
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -62,32 +64,29 @@ function RegisterPage() {
       return;
     }
 
-    setFormError(null);
-
-    const customerData = {
-      last_name: formData.get("last_name"),
-      first_name: formData.get("first_name"),
-      patronymic: formData.get("patronymic"),
-      email: formData.get("email"),
-      sex: formData.get("sex"),
-      birthday: formData.get("birthday"),
-      phone: formData.get("phone"),
-      address: formData.get("address"),
-      password,
+    const customerData: Omit<Customer, "id"> = {
+      last_name: String(formData.get("last_name") ?? ""),
+      first_name: String(formData.get("first_name") ?? ""),
+      patronymic: String(formData.get("patronymic") ?? ""),
+      email: String(formData.get("email") ?? ""),
+      sex: String(formData.get("sex") ?? "") as CustomerSex,
+      birthday: String(formData.get("birthday") ?? ""),
+      phone: String(formData.get("phone") ?? ""),
+      address: String(formData.get("address") ?? ""),
     };
 
-    console.log(customerData);
+    const registrationSucceeded = registerMockCustomer(customerData, password);
 
-    // Temporary mock.
-    // Later this becomes the real registration request.
-    mockAuthenticate();
+    if (!registrationSucceeded) {
+      setFormError("Unable to create the account.");
+      return;
+    }
+
+    setFormError(null);
 
     navigate(returnTo, {
       replace: true,
     });
-
-    // Later:
-    // send customerData to the backend registration endpoint
   };
 
   return (

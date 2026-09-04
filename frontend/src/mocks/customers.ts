@@ -14,6 +14,30 @@ export const customers: Customer[] = [
   },
 ];
 
+export function replaceMockCustomer(
+  customerId: number,
+  customerData: Omit<Customer, "id">,
+): Customer | null {
+  const customer = customers.find((customer) => customer.id === customerId);
+
+  if (!customer) {
+    return null;
+  }
+
+  Object.assign(customer, {
+    ...customerData,
+    last_name: customerData.last_name.trim(),
+    first_name: customerData.first_name.trim(),
+    patronymic: customerData.patronymic.trim(),
+    email: customerData.email.trim().toLowerCase(),
+    birthday: customerData.birthday.trim(),
+    phone: customerData.phone.trim(),
+    address: customerData.address.trim(),
+  });
+
+  return customer;
+}
+
 export interface CustomerProfileUpdate {
   last_name: string;
   first_name: string;
