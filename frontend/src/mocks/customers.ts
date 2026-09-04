@@ -37,3 +37,58 @@ export function updateMockCustomerProfile(
 
   return customer;
 }
+
+export function isMockEmailInUse(
+  email: string,
+  excludeCustomerId?: number,
+): boolean {
+  const normalizedEmail = email.trim().toLowerCase();
+
+  return customers.some(
+    (customer) =>
+      customer.id !== excludeCustomerId &&
+      customer.email.toLowerCase() === normalizedEmail,
+  );
+}
+
+export function updateMockCustomerEmail(
+  customerId: number,
+  email: string,
+): Customer | null {
+  const customer = customers.find((customer) => customer.id === customerId);
+
+  if (!customer) {
+    return null;
+  }
+
+  customer.email = email.trim().toLowerCase();
+
+  return customer;
+}
+
+export function isMockPhoneInUse(
+  phone: string,
+  excludeCustomerId?: number,
+): boolean {
+  const normalizedPhone = phone.trim();
+
+  return customers.some(
+    (customer) =>
+      customer.id !== excludeCustomerId && customer.phone === normalizedPhone,
+  );
+}
+
+export function updateMockCustomerPhone(
+  customerId: number,
+  phone: string,
+): Customer | null {
+  const customer = customers.find((customer) => customer.id === customerId);
+
+  if (!customer) {
+    return null;
+  }
+
+  customer.phone = phone.trim();
+
+  return customer;
+}

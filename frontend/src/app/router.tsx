@@ -13,6 +13,9 @@ import MyAppointmentsPage from "../pages/appointments/MyAppointmentsPage";
 import ProfilePage from "../pages/profile/ProfilePage";
 import EditProfilePage from "../pages/profile/EditProfilePage";
 import ProfileSettingsPage from "../pages/profile/ProfileSettingsPage";
+import ChangeEmailPage from "../pages/profile/ChangeEmailPage";
+import ChangePhonePage from "../pages/profile/ChangePhonePage";
+import ChangePasswordPage from "../pages/profile/ChangePasswordPage";
 
 import LoginPage from "../pages/auth/LoginPage";
 import RegisterPage from "../pages/auth/RegisterPage";
@@ -101,6 +104,21 @@ export const router = createBrowserRouter([
         path: "/appointments/success/:talonId",
         element: <AppointmentSuccessPage />,
         loader: requireMockAuthentication("appointment"),
+      },
+      {
+        path: "/profile/settings/email",
+        element: <ChangeEmailPage />,
+        loader: requireMockAuthentication("account"),
+      },
+      {
+        path: "/profile/settings/phone",
+        element: <ChangePhonePage />,
+        loader: requireMockAuthentication("account"),
+      },
+      {
+        path: "/profile/settings/password",
+        element: <ChangePasswordPage />,
+        loader: requireMockAuthentication("account"),
       },
       {
         path: "*",

@@ -1,3 +1,5 @@
+import { Link as RouterLink } from "react-router-dom";
+
 import EmailIcon from "@mui/icons-material/Email";
 import LockIcon from "@mui/icons-material/Lock";
 import PhoneIcon from "@mui/icons-material/Phone";
@@ -55,7 +57,13 @@ function ProfileSettingsPage() {
                 <Typography color="text.secondary">{customer.email}</Typography>
               </Stack>
 
-              <Button variant="outlined">Change email</Button>
+              <Button
+                variant="outlined"
+                component={RouterLink}
+                to="/profile/settings/email"
+              >
+                Change email
+              </Button>
             </Stack>
 
             <Divider />
@@ -69,7 +77,13 @@ function ProfileSettingsPage() {
                 <Typography color="text.secondary">{customer.phone}</Typography>
               </Stack>
 
-              <Button variant="outlined">Change phone</Button>
+              <Button
+                variant="outlined"
+                component={RouterLink}
+                to="/profile/settings/phone"
+              >
+                Change phone
+              </Button>
             </Stack>
 
             <Divider />
@@ -83,7 +97,13 @@ function ProfileSettingsPage() {
                 <Typography color="text.secondary">••••••••</Typography>
               </Stack>
 
-              <Button variant="outlined">Change password</Button>
+              <Button
+                variant="outlined"
+                component={RouterLink}
+                to="/profile/settings/password"
+              >
+                Change password
+              </Button>
             </Stack>
           </Stack>
         </Paper>
