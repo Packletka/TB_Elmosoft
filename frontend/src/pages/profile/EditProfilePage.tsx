@@ -137,7 +137,11 @@ function EditProfilePage() {
                 fullWidth
               />
 
-              <Stack direction="row" spacing={2} justifyContent="flex-end">
+              <Stack
+                direction="row"
+                spacing={2}
+                sx={{ justifyContent: "flex-end" }}
+              >
                 <Button
                   type="button"
                   variant="outlined"

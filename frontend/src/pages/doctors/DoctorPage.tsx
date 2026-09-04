@@ -83,7 +83,7 @@ function DoctorPage() {
           ← Back to {getPluralPosition(doctor.position)}
         </Link>
 
-        <Stack direction="row" spacing={3} alignItems="center">
+        <Stack direction="row" spacing={3} sx={{ alignItems: "center" }}>
           <Avatar
             sx={{
               width: 80,

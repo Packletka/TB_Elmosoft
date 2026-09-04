@@ -180,7 +180,11 @@ function ChangePhonePage() {
                   fullWidth
                 />
 
-                <Stack direction="row" spacing={2} justifyContent="flex-end">
+                <Stack
+                  direction="row"
+                  spacing={2}
+                  sx={{ justifyContent: "flex-end" }}
+                >
                   <Button
                     component={RouterLink}
                     to="/profile/settings"
@@ -221,7 +225,11 @@ function ChangePhonePage() {
                   Resend code
                 </Button>
 
-                <Stack direction="row" spacing={2} justifyContent="flex-end">
+                <Stack
+                  direction="row"
+                  spacing={2}
+                  sx={{ justifyContent: "flex-end" }}
+                >
                   <Button
                     type="button"
                     variant="outlined"

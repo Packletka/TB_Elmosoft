@@ -63,9 +63,11 @@ function AppointmentCard({
           <Stack spacing={2}>
             <Stack
               direction="row"
-              justifyContent="space-between"
-              alignItems="flex-start"
               spacing={2}
+              sx={{
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+              }}
             >
               <Stack spacing={0.5}>
                 <Typography variant="h6" component="h2">
@@ -114,7 +116,7 @@ function AppointmentCard({
                   Date
                 </Typography>
 
-                <Typography fontWeight={600}>{talon.date}</Typography>
+                <Typography sx={{ fontWeight: 600 }}>{talon.date}</Typography>
               </Stack>
 
               <Stack spacing={0.5}>
@@ -122,7 +124,7 @@ function AppointmentCard({
                   Time
                 </Typography>
 
-                <Typography fontWeight={600}>{talon.time}</Typography>
+                <Typography sx={{ fontWeight: 600 }}>{talon.time}</Typography>
               </Stack>
             </Stack>
           </Stack>

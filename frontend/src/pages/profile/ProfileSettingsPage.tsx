@@ -48,7 +48,7 @@ function ProfileSettingsPage() {
 
         <Paper variant="outlined" sx={{ p: 3 }}>
           <Stack spacing={2}>
-            <Stack direction="row" spacing={2} alignItems="center">
+            <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
               <EmailIcon />
 
               <Stack sx={{ flexGrow: 1 }}>
@@ -68,7 +68,7 @@ function ProfileSettingsPage() {
 
             <Divider />
 
-            <Stack direction="row" spacing={2} alignItems="center">
+            <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
               <PhoneIcon />
 
               <Stack sx={{ flexGrow: 1 }}>
@@ -88,7 +88,7 @@ function ProfileSettingsPage() {
 
             <Divider />
 
-            <Stack direction="row" spacing={2} alignItems="center">
+            <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
               <LockIcon />
 
               <Stack sx={{ flexGrow: 1 }}>

@@ -50,7 +50,7 @@ function ProfilePage() {
           Profile
         </Typography>
 
-        <Stack direction="row" spacing={2} alignItems="center">
+        <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
           <Avatar
             sx={{
               width: 64,

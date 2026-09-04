@@ -125,7 +125,7 @@ function AppointmentConfirmationPage() {
             Patient
           </Typography>
 
-          <Stack direction="row" spacing={2} alignItems="center">
+          <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
             <Avatar>{customerInitials}</Avatar>
 
             <Stack spacing={0.5}>

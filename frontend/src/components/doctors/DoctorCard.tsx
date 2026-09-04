@@ -21,7 +21,7 @@ function DoctorCard({ doctor }: DoctorCardProps) {
     <Card>
       <CardActionArea component={RouterLink} to={`/doctors/${doctor.id}`}>
         <CardContent>
-          <Stack direction="row" spacing={2} alignItems="center">
+          <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
             <Avatar>{initials}</Avatar>
 
             <div>

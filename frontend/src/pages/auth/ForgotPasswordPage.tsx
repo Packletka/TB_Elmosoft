@@ -209,7 +209,7 @@ function ForgotPasswordPage() {
                   Send recovery code
                 </Button>
 
-                <Typography variant="body2" textAlign="center">
+                <Typography variant="body2" sx={{ textAlign: "center" }}>
                   Remember your password?{" "}
                   <Link component={RouterLink} to="/login" underline="hover">
                     Return to sign in
@@ -245,7 +245,11 @@ function ForgotPasswordPage() {
                   Resend code
                 </Button>
 
-                <Stack direction="row" spacing={2} justifyContent="flex-end">
+                <Stack
+                  direction="row"
+                  spacing={2}
+                  sx={{ justifyContent: "flex-end" }}
+                >
                   <Button
                     type="button"
                     variant="outlined"

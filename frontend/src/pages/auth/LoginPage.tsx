@@ -151,7 +151,7 @@ function LoginPage() {
             </Stack>
           </Box>
 
-          <Typography variant="body2" textAlign="center">
+          <Typography variant="body2" sx={{ textAlign: "center" }}>
             Don't have an account?{" "}
             <Link component={RouterLink} to={registerUrl} underline="hover">
               Sign up

@@ -221,7 +221,7 @@ function RegisterPage() {
             </Stack>
           </Box>
 
-          <Typography variant="body2" textAlign="center">
+          <Typography variant="body2" sx={{ textAlign: "center" }}>
             Already have an account?{" "}
             <Link component={RouterLink} to={loginUrl} underline="hover">
               Sign in
