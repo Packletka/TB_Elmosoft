@@ -1,5 +1,7 @@
 import { createBrowserRouter, redirect } from "react-router-dom";
 
+import HomePage from "../pages/HomePage";
+
 import OrganisationPage from "../pages/organisations/OrganisationPage";
 import OrganisationsPage from "../pages/organisations/OrganisationsPage";
 
@@ -52,6 +54,10 @@ export const router = createBrowserRouter([
   {
     element: <Layout />,
     children: [
+      {
+        path: "/",
+        element: <HomePage />,
+      },
       {
         path: "/appointments",
         element: <MyAppointmentsPage />,

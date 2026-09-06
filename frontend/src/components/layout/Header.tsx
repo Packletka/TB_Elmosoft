@@ -60,7 +60,7 @@ function Header() {
         <Typography
           variant="h6"
           component={RouterLink}
-          to="/organisations"
+          to="/"
           sx={{
             flexGrow: 1,
             color: "inherit",
