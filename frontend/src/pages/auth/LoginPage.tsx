@@ -52,6 +52,10 @@ function LoginPage() {
     ? `/register?${registerQuery}`
     : "/register";
 
+  const forgotPasswordUrl = registerQuery
+    ? `/forgot-password?${registerQuery}`
+    : "/forgot-password";
+
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
@@ -138,7 +142,7 @@ function LoginPage() {
               >
                 <Link
                   component={RouterLink}
-                  to="/forgot-password"
+                  to={forgotPasswordUrl}
                   underline="hover"
                 >
                   Forgot password?

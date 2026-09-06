@@ -48,7 +48,7 @@ export function getMockCurrentCustomerId(): number | null {
 
 export function getSafeReturnTo(returnTo: string | null): string {
   if (!returnTo || !returnTo.startsWith("/") || returnTo.startsWith("//")) {
-    return "/organisations";
+    return "/";
   }
 
   return returnTo;

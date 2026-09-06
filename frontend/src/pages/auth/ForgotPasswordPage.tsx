@@ -1,6 +1,6 @@
 import type { FormEvent } from "react";
 import { useState } from "react";
-import { Link as RouterLink } from "react-router-dom";
+import { Link as RouterLink, useSearchParams } from "react-router-dom";
 
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -20,12 +20,27 @@ import {
   verifyMockPasswordRecoveryCode,
 } from "../../mocks/account";
 
-import { clearMockAuthentication } from "../../mocks/auth";
+import { clearMockAuthentication, getSafeReturnTo } from "../../mocks/auth";
 import { customers } from "../../mocks/customers";
 
 type PasswordRecoveryStep = "request" | "verification" | "reset" | "success";
 
 function ForgotPasswordPage() {
+  const [searchParams] = useSearchParams();
+
+  const reason = searchParams.get("reason");
+  const rawReturnTo = searchParams.get("returnTo");
+
+  const hasAuthenticationContext =
+    (reason === "appointment" || reason === "account") && rawReturnTo !== null;
+
+  const loginSearchParams = new URLSearchParams();
+
+  if (hasAuthenticationContext) {
+    loginSearchParams.set("reason", reason);
+    loginSearchParams.set("returnTo", getSafeReturnTo(rawReturnTo));
+  }
+
   const [step, setStep] = useState<PasswordRecoveryStep>("request");
 
   const [recoveryEmail, setRecoveryEmail] = useState("");
@@ -33,6 +48,10 @@ function ForgotPasswordPage() {
   const [recoveryCustomerId, setRecoveryCustomerId] = useState<number | null>(
     null,
   );
+
+  const loginQuery = loginSearchParams.toString();
+
+  const loginUrl = loginQuery ? `/login?${loginQuery}` : "/login";
 
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -211,7 +230,7 @@ function ForgotPasswordPage() {
 
                 <Typography variant="body2" sx={{ textAlign: "center" }}>
                   Remember your password?{" "}
-                  <Link component={RouterLink} to="/login" underline="hover">
+                  <Link component={RouterLink} to={loginUrl} underline="hover">
                     Return to sign in
                   </Link>
                 </Typography>
@@ -313,7 +332,7 @@ function ForgotPasswordPage() {
 
               <Button
                 component={RouterLink}
-                to="/login"
+                to={loginUrl}
                 variant="contained"
                 size="large"
               >

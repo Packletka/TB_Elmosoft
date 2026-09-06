@@ -21,8 +21,8 @@ function NotFoundPage() {
           The page you are looking for does not exist.
         </Typography>
 
-        <Link component={RouterLink} to="/organisations">
-          Back to Health Organisations
+        <Link component={RouterLink} to="/">
+          Back to Home
         </Link>
       </Stack>
     </Container>

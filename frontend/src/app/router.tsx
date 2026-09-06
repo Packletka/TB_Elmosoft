@@ -50,6 +50,14 @@ function requireMockAuthentication(reason: AuthReason) {
   };
 }
 
+function redirectAuthenticatedUser() {
+  if (isMockAuthenticated()) {
+    return redirect("/");
+  }
+
+  return null;
+}
+
 export const router = createBrowserRouter([
   {
     element: <Layout />,
@@ -81,14 +89,17 @@ export const router = createBrowserRouter([
       {
         path: "/register",
         element: <RegisterPage />,
+        loader: redirectAuthenticatedUser,
       },
       {
         path: "/login",
         element: <LoginPage />,
+        loader: redirectAuthenticatedUser,
       },
       {
         path: "/forgot-password",
         element: <ForgotPasswordPage />,
+        loader: redirectAuthenticatedUser,
       },
       {
         path: "/organisations",

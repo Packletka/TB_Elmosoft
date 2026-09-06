@@ -49,7 +49,7 @@ function Header() {
   const handleSignOut = () => {
     clearMockAuthentication();
 
-    navigate("/organisations", {
+    navigate("/", {
       replace: true,
     });
   };

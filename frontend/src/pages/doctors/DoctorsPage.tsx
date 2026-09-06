@@ -1,5 +1,6 @@
 import {
   Link as RouterLink,
+  Navigate,
   useParams,
   useSearchParams,
 } from "react-router-dom";
@@ -44,10 +45,20 @@ function DoctorsPage() {
     );
   }
 
-  const filteredDoctors = doctors.filter(
-    (doctor) =>
-      doctor.health_organisation === organisation.id &&
-      doctor.position === position,
+  const organisationDoctors = doctors.filter(
+    (doctor) => doctor.health_organisation === organisation.id,
+  );
+
+  const availablePositions = new Set(
+    organisationDoctors.map((doctor) => doctor.position),
+  );
+
+  if (position === null || !availablePositions.has(position)) {
+    return <Navigate to={`/organisations/${organisation.id}`} replace />;
+  }
+
+  const filteredDoctors = organisationDoctors.filter(
+    (doctor) => doctor.position === position,
   );
 
   return (
