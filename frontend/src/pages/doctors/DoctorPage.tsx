@@ -114,36 +114,6 @@ function DoctorPage() {
 
       <Stack spacing={2}>
         <Typography variant="h6" component="h2">
-          Free talons — temporary test
-        </Typography>
-
-        {freeTalons.length > 0 ? (
-          freeTalons.map((talon) => (
-            <Typography key={talon.id}>
-              {talon.date} — {talon.time}
-            </Typography>
-          ))
-        ) : (
-          <Typography color="text.secondary">No free talons.</Typography>
-        )}
-      </Stack>
-
-      <Stack spacing={2}>
-        <Typography variant="h6" component="h2">
-          Available dates — temporary test
-        </Typography>
-
-        {availableDates.length > 0 ? (
-          availableDates.map((date) => (
-            <Typography key={date}>{date}</Typography>
-          ))
-        ) : (
-          <Typography color="text.secondary">No available dates.</Typography>
-        )}
-      </Stack>
-
-      <Stack spacing={2}>
-        <Typography variant="h6" component="h2">
           Available appointments
         </Typography>
 
