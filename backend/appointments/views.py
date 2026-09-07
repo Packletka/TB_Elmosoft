@@ -4,9 +4,10 @@ from django.db import transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from django.utils.dateparse import parse_date, parse_time
 from rest_framework import status
 from rest_framework.decorators import action
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.permissions import AllowAny, BasePermission, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
@@ -58,7 +59,7 @@ class TalonViewSet(ModelViewSet):
             "customer__user",
             "doctor__user",
             "doctor__health_organisation",
-        )
+        ).order_by("date", "time", "id")
 
         user = self.request.user
 
@@ -80,10 +81,19 @@ class TalonViewSet(ModelViewSet):
         else:
             base_queryset = queryset.filter(customer__isnull=True)
 
-        date = self.request.query_params.get("date", "")
-        time = self.request.query_params.get("time", "")
+        doctor_id = self._get_positive_int_query_param("doctor")
+        appointment_date = self._get_date_query_param("date")
+        appointment_time = self._get_time_query_param("time")
+        free = self.request.query_params.get("free", "").lower()
+        active = self.request.query_params.get("active", "").lower()
 
-        active = self.request.query_params.get("active", "")
+        if doctor_id is not None:
+            base_queryset = base_queryset.filter(doctor_id=doctor_id)
+
+        if free in ["true", "on", "yes", "1"]:
+            base_queryset = base_queryset.filter(customer__isnull=True)
+        elif free in ["false", "off", "no", "0"]:
+            base_queryset = base_queryset.filter(customer__isnull=False)
 
         if active in ["true", "on", "yes", "1"]:
             now = datetime.now(tz=UTC)
@@ -100,19 +110,11 @@ class TalonViewSet(ModelViewSet):
                 Q(date__lt=cur_date) | (Q(date=cur_date) & Q(time__lt=cur_time)),
             )
 
-        if date and time:
-            return base_queryset.filter(
-                Q(date__gt=date) | (Q(date=date) & Q(time__gte=time)),
-            )
+        if appointment_date is not None:
+            base_queryset = base_queryset.filter(date=appointment_date)
 
-        if date:
-            return base_queryset.filter(date__gte=date)
-
-        if time:
-            return base_queryset.filter(
-                date=datetime.now(tz=UTC).date(),
-                time__gte=time,
-            )
+        if appointment_time is not None:
+            base_queryset = base_queryset.filter(time__gte=appointment_time)
 
         return base_queryset
 
@@ -188,6 +190,48 @@ class TalonViewSet(ModelViewSet):
 
         serializer = self.get_serializer(talon)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def _get_positive_int_query_param(self, name):
+        value = self.request.query_params.get(name, "")
+
+        if not value:
+            return None
+
+        try:
+            parsed_value = int(value)
+        except ValueError as exc:
+            raise ValidationError({name: "Must be a valid integer."}) from exc
+
+        if parsed_value <= 0:
+            raise ValidationError({name: "Must be a positive integer."})
+
+        return parsed_value
+
+    def _get_date_query_param(self, name):
+        value = self.request.query_params.get(name, "")
+
+        if not value:
+            return None
+
+        parsed_value = parse_date(value)
+
+        if parsed_value is None:
+            raise ValidationError({name: "Use YYYY-MM-DD format."})
+
+        return parsed_value
+
+    def _get_time_query_param(self, name):
+        value = self.request.query_params.get(name, "")
+
+        if not value:
+            return None
+
+        parsed_value = parse_time(value)
+
+        if parsed_value is None:
+            raise ValidationError({name: "Use HH:MM or HH:MM:SS format."})
+
+        return parsed_value
 
     def _ensure_user_can_manage_doctor(self, doctor):
         user = self.request.user
