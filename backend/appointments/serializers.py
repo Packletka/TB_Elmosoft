@@ -14,7 +14,12 @@ class HealthOrganisationSerializer(ModelSerializer):
 
 
 class TalonsSerializer(ModelSerializer):
-    doctor = serializers.PrimaryKeyRelatedField(queryset=Doctor.objects.all(), write_only=True, required=True)
+    customer = serializers.PrimaryKeyRelatedField(read_only=True)
+    doctor = serializers.PrimaryKeyRelatedField(
+        queryset=Doctor.objects.all(),
+        write_only=True,
+        required=True,
+    )
 
     doctor_info = serializers.SerializerMethodField(read_only=True)
 
@@ -26,14 +31,30 @@ class TalonsSerializer(ModelSerializer):
         return {
             "id": obj.doctor.id,
             "position": obj.doctor.position,
-            "health_organisation": HealthOrganisationSerializer(obj.doctor.health_organisation).data
+            "health_organisation": HealthOrganisationSerializer(
+                obj.doctor.health_organisation,
+            ).data
             if obj.doctor.health_organisation
             else None,
         }
 
     def validate(self, data):
-        doctor = data.get("doctor")
-        appointment_date = data.get("date")
-        appointment_time = data.get("time")
-        validate_appointment(doctor, appointment_date, appointment_time, self.instance)
+        doctor = data.get("doctor", self.instance.doctor if self.instance else None)
+        appointment_date = data.get(
+            "date",
+            self.instance.date if self.instance else None,
+        )
+        appointment_time = data.get(
+            "time",
+            self.instance.time if self.instance else None,
+        )
+
+        if doctor and appointment_date and appointment_time:
+            validate_appointment(
+                doctor,
+                appointment_date,
+                appointment_time,
+                self.instance,
+            )
+
         return data
