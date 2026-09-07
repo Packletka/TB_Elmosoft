@@ -108,16 +108,25 @@ class CustomerViewSet(
 
 class DoctorViewSet(ModelViewSet):
     serializer_class = DoctorSerializer
-    permission_classes = (IsAdminOrRepresentativeForDoctor,)
+
+    def get_permissions(self):
+        if self.action in ("list", "retrieve"):
+            return [AllowAny()]
+
+        return [IsAdminOrRepresentativeForDoctor()]
 
     def get_queryset(self):
-        user = self.request.user
-        queryset = Doctor.objects.all()
+        queryset = Doctor.objects.select_related("user", "health_organisation")
 
-        # If representative -> filter to their organization
+        if self.action in ("list", "retrieve"):
+            return queryset
+
+        user = self.request.user
+
+        # If representative -> manage only doctors from their organization
         if user.is_authenticated and hasattr(user, "representative"):
             rep_org = user.representative.health_organisation
-            queryset = queryset.filter(health_organisation=rep_org)
+            return queryset.filter(health_organisation=rep_org)
 
         return queryset
 
