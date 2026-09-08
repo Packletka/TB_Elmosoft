@@ -1,5 +1,6 @@
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
@@ -116,9 +117,24 @@ class DoctorViewSet(ModelViewSet):
         return [IsAdminOrRepresentativeForDoctor()]
 
     def get_queryset(self):
-        queryset = Doctor.objects.select_related("user", "health_organisation")
+        queryset = Doctor.objects.select_related(
+            "user",
+            "health_organisation",
+        ).order_by("id")
 
-        if self.action in ("list", "retrieve"):
+        if self.action == "list":
+            health_organisation_id = self._get_positive_int_query_param(
+                "health_organisation",
+            )
+
+            if health_organisation_id is not None:
+                queryset = queryset.filter(
+                    health_organisation_id=health_organisation_id,
+                )
+
+            return queryset
+
+        if self.action == "retrieve":
             return queryset
 
         user = self.request.user
@@ -129,6 +145,22 @@ class DoctorViewSet(ModelViewSet):
             return queryset.filter(health_organisation=rep_org)
 
         return queryset
+
+    def _get_positive_int_query_param(self, name):
+        value = self.request.query_params.get(name, "")
+
+        if not value:
+            return None
+
+        try:
+            parsed_value = int(value)
+        except ValueError as exc:
+            raise ValidationError({name: "Must be a valid integer."}) from exc
+
+        if parsed_value <= 0:
+            raise ValidationError({name: "Must be a positive integer."})
+
+        return parsed_value
 
 
 class RepresentativeViewSet(ModelViewSet):
