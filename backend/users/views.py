@@ -34,7 +34,6 @@ class CustomUserViewSet(
     queryset = CustomUser.objects.all()
 
     def get_permissions(self):
-        print(f"DEBUG: action = {self.action}")
         if self.action == "register":
             return [AllowAny()]
         elif self.action in ["me", "update_me", "delete_me"]:
@@ -56,7 +55,6 @@ class CustomUserViewSet(
     @action(detail=False, methods=["PUT", "PATCH"])
     def update_me(self, request):
         user = request.user
-        print(f"DEBUG: User={user.email}, has_customer={hasattr(user, 'customer')}")
 
         if hasattr(user, "customer"):
             serializer_class = CustomerUpdateSerializer
@@ -67,27 +65,13 @@ class CustomUserViewSet(
         else:
             serializer_class = UserUpdateSerializer
 
-        print(f"DEBUG: serializer_class={serializer_class.__name__}")
-
-        print(f"DEBUG: class has update() = {hasattr(serializer_class, 'update')}")
-
         serializer = serializer_class(
             instance=user, data=request.data, partial=request.method == "PATCH", context={"request": request}
         )
 
-        print(f"DEBUG: instance has update() = {hasattr(serializer, 'update')}")
-        print(f"DEBUG: instance type = {type(serializer)}")
-
-        if hasattr(serializer, "update"):
-            print(f"DEBUG: update method = {serializer.update}")
-        else:
-            print("DEBUG: update method is MISSING on instance!")
-
         serializer.is_valid(raise_exception=True)
-        print(f"DEBUG: valid data = {serializer.validated_data}")
 
-        result = serializer.save()
-        print(f"DEBUG: save result = {result}")
+        serializer.save()
 
         return Response(serializer.data)
 
