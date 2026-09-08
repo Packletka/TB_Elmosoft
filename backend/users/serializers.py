@@ -2,6 +2,7 @@ from typing import ClassVar
 
 from django.contrib.auth import get_user_model
 from django.db import transaction
+from health_organisations.models import HealthOrganisation
 from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer, Serializer
 
@@ -168,18 +169,63 @@ class CustomerSerializer(ModelSerializer):
         )
 
 
+class DoctorHealthOrganisationSerializer(ModelSerializer):
+    class Meta:
+        model = HealthOrganisation
+        fields = (
+            "id",
+            "name",
+            "address",
+            "phone",
+            "email",
+            "site",
+        )
+
+
 class DoctorSerializer(ModelSerializer):
+    user = serializers.PrimaryKeyRelatedField(
+        queryset=CustomUser.objects.all(),
+        write_only=True,
+        required=True,
+    )
+    full_name = serializers.SerializerMethodField(read_only=True)
+    last_name = serializers.CharField(source="user.last_name", read_only=True)
+    first_name = serializers.CharField(source="user.first_name", read_only=True)
+    patronymic = serializers.CharField(source="user.patronymic", read_only=True)
+    health_organisation = DoctorHealthOrganisationSerializer(read_only=True)
+    health_organisation_id = serializers.PrimaryKeyRelatedField(
+        source="health_organisation",
+        queryset=HealthOrganisation.objects.all(),
+        write_only=True,
+        required=False,
+        allow_null=True,
+    )
+
     class Meta:
         model = Doctor
         fields = (
             "id",
             "user",
-            "health_organisation",
+            "full_name",
+            "last_name",
+            "first_name",
+            "patronymic",
             "position",
             "cabinet",
-            "work_schedule",
             "slot_duration",
+            "health_organisation",
+            "health_organisation_id",
+            "work_schedule",
         )
+
+    def get_full_name(self, obj):
+        name_parts = [
+            obj.user.last_name,
+            obj.user.first_name,
+            obj.user.patronymic,
+        ]
+
+        return " ".join(part for part in name_parts if part)
 
 
 class RepresentativeSerializer(ModelSerializer):
