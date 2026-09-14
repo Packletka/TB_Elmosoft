@@ -1,3 +1,4 @@
+import type { AxiosRequestConfig } from "axios";
 import apiClient from "./client";
 import type { RegisterPayload } from "../types/auth";
 import type {
@@ -27,8 +28,8 @@ export const authApi = {
     });
   },
 
-  getCurrentUser() {
-    return apiClient.get<MeResponse>("/user/me");
+  getCurrentUser(config?: AxiosRequestConfig) {
+    return apiClient.get<MeResponse>("/user/me", config);
   },
 
   register(data: RegisterPayload) {

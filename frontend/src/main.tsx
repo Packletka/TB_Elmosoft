@@ -1,6 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { RouterProvider } from "react-router-dom";
+import { AuthProvider } from "./auth/AuthProvider";
 
 /* from MUI Date Calendar documentation */
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
@@ -15,8 +16,9 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <LocalizationProvider dateAdapter={AdapterDayjs}>
       <CssBaseline />
-
-      <RouterProvider router={router} />
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>
     </LocalizationProvider>
   </StrictMode>,
 );
