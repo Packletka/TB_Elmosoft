@@ -24,9 +24,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       try {
-        const res = await authApi.getCurrentUser({
-          headers: { Authorization: `Bearer ${accessToken}` },
-        });
+        const res = await authApi.getCurrentUser();
         if (!cancelled) setUser(res.data);
       } catch (err) {
         if (axios.isAxiosError(err) && err.response?.status === 401) {
@@ -49,9 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { access, refresh } = tokenRes.data;
     setTokens(access, refresh);
 
-    const meRes = await authApi.getCurrentUser({
-      headers: { Authorization: `Bearer ${access}` },
-    });
+    const meRes = await authApi.getCurrentUser();
     setUser(meRes.data);
   }
 
