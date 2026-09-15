@@ -16,5 +16,7 @@ class IsAdminOrRepresentativeForDoctor(BasePermission):
         if hasattr(request.user, "representative"):
             # True if representative is from exact correct organisation
             rep_org = request.user.representative.health_organisation
+            if rep_org is None:
+                return False
             return obj.health_organisation == rep_org
         return False

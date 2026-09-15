@@ -69,9 +69,12 @@ class TalonViewSet(ModelViewSet):
             base_queryset = queryset
         elif hasattr(user, "representative"):
             representative_organisation = user.representative.health_organisation
-            base_queryset = queryset.filter(
-                doctor__health_organisation=representative_organisation,
-            )
+            if representative_organisation is None:
+                base_queryset = queryset.none()
+            else:
+                base_queryset = queryset.filter(
+                    doctor__health_organisation=representative_organisation,
+                )
         elif hasattr(user, "customer"):
             base_queryset = queryset.filter(
                 Q(customer__user=user) | Q(customer__isnull=True),

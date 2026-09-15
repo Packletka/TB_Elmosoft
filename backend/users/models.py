@@ -33,6 +33,10 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 
     email = models.EmailField(unique=True)
 
+    home_organisation = models.ForeignKey(
+        HealthOrganisation, on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
+
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)
@@ -107,6 +111,9 @@ class Doctor(models.Model):
     def save(self, *args, **kwargs):
         self.full_clean()
         super().save(*args, **kwargs)
+        if self.user.home_organisation_id != self.health_organisation_id:
+            self.user.home_organisation = self.health_organisation
+            self.user.save(update_fields=["home_organisation"])
 
     def clean(self):
         super().clean()
@@ -123,6 +130,9 @@ class Representative(models.Model):
     def save(self, *args, **kwargs):
         self.full_clean()
         super().save(*args, **kwargs)
+        if self.user.home_organisation_id != self.health_organisation_id:
+            self.user.home_organisation = self.health_organisation
+            self.user.save(update_fields=["home_organisation"])
 
     def clean(self):
         super().clean()

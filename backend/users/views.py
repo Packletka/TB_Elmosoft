@@ -126,6 +126,8 @@ class DoctorViewSet(ModelViewSet):
         # If representative -> manage only doctors from their organization
         if user.is_authenticated and hasattr(user, "representative"):
             rep_org = user.representative.health_organisation
+            if rep_org is None:
+                return queryset.none()
             return queryset.filter(health_organisation=rep_org)
 
         return queryset
