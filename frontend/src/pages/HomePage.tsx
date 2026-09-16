@@ -7,7 +7,7 @@ import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
-import { isMockAuthenticated } from "../mocks/auth";
+import { useAuth } from "../auth/useAuth";
 
 const bookingSteps = [
   {
@@ -33,7 +33,7 @@ const bookingSteps = [
 ];
 
 function HomePage() {
-  const isAuthenticated = isMockAuthenticated();
+  const { isAuthenticated } = useAuth();
 
   return (
     <Container maxWidth="lg">
