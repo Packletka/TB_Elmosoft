@@ -9,6 +9,7 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView,
 )
 from users.views import (
+    CustomerViewSet,
     CustomUserViewSet,
     DoctorViewSet,
     RepresentativeViewSet,
@@ -17,6 +18,7 @@ from users.views import (
 router = DefaultRouter(trailing_slash=False)
 
 router.register("user", CustomUserViewSet, basename="user")
+router.register("customer", CustomerViewSet, basename="customer")
 router.register("doctor", DoctorViewSet, basename="doctor")
 router.register("representative", RepresentativeViewSet, basename="representative")
 router.register("appointment", TalonViewSet, basename="appointment")

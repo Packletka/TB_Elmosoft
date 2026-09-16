@@ -169,6 +169,7 @@ class CustomerSerializer(ModelSerializer):
             "phone",
             "address",
         )
+        extra_kwargs: ClassVar = {"user": {"read_only": True}}
 
 
 class DoctorHealthOrganisationSerializer(ModelSerializer):
