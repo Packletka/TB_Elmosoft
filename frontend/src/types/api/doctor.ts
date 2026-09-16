@@ -25,3 +25,20 @@ export interface DoctorResponse {
   health_organisation: DoctorNestedOrganisation | null;
   work_schedule: DoctorWorkSchedule;
 }
+
+export interface DoctorCreatePayload {
+  user: number;
+  position: string;
+  cabinet: number;
+  work_schedule: DoctorWorkSchedule;
+  slot_duration: number;
+  health_organisation_id?: number | null;
+}
+
+export interface DoctorUpdatePayload {
+  position?: string;
+  cabinet?: number;
+  work_schedule?: DoctorWorkSchedule;
+  slot_duration?: number;
+  health_organisation_id?: number | null;
+}
