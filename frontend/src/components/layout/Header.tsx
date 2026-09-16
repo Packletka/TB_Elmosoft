@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link as RouterLink, useLocation, useNavigate } from "react-router-dom";
 
 import AppBar from "@mui/material/AppBar";
@@ -6,22 +7,17 @@ import Stack from "@mui/material/Stack";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
 
-import {
-  clearMockAuthentication,
-  getSafeReturnTo,
-  isMockAuthenticated,
-} from "../../mocks/auth";
+import { getSafeReturnTo } from "../../auth/getSafeReturnTo";
+import { useAuth } from "../../auth/useAuth";
 
 function Header() {
   const location = useLocation();
   const navigate = useNavigate();
-
-  const isAuthenticated = isMockAuthenticated();
+  const { isAuthenticated, isInitialized, logout } = useAuth();
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
   const currentSearchParams = new URLSearchParams(location.search);
-
   const reason = currentSearchParams.get("reason");
-
   const rawReturnTo = currentSearchParams.get("returnTo");
 
   const isAuthenticationPage =
@@ -33,25 +29,23 @@ function Header() {
     rawReturnTo !== null;
 
   const authSearchParams = new URLSearchParams();
-
   if (hasAuthenticationContext) {
     authSearchParams.set("reason", reason);
-
     authSearchParams.set("returnTo", getSafeReturnTo(rawReturnTo));
   }
 
   const authQuery = authSearchParams.toString();
-
   const loginUrl = authQuery ? `/login?${authQuery}` : "/login";
-
   const registerUrl = authQuery ? `/register?${authQuery}` : "/register";
 
-  const handleSignOut = () => {
-    clearMockAuthentication();
-
-    navigate("/", {
-      replace: true,
-    });
+  const handleSignOut = async () => {
+    setIsSigningOut(true);
+    try {
+      await logout();
+      navigate("/", { replace: true });
+    } finally {
+      setIsSigningOut(false);
+    }
   };
 
   return (
@@ -61,16 +55,12 @@ function Header() {
           variant="h6"
           component={RouterLink}
           to="/"
-          sx={{
-            flexGrow: 1,
-            color: "inherit",
-            textDecoration: "none",
-          }}
+          sx={{ flexGrow: 1, color: "inherit", textDecoration: "none" }}
         >
           Health App
         </Typography>
 
-        {isAuthenticated ? (
+        {!isInitialized ? null : isAuthenticated ? (
           <Stack direction="row" spacing={1}>
             <Button color="inherit" component={RouterLink} to="/appointments">
               My appointments
@@ -80,8 +70,13 @@ function Header() {
               Profile
             </Button>
 
-            <Button color="inherit" variant="outlined" onClick={handleSignOut}>
-              Sign out
+            <Button
+              color="inherit"
+              variant="outlined"
+              onClick={handleSignOut}
+              disabled={isSigningOut}
+            >
+              {isSigningOut ? "Signing out..." : "Sign out"}
             </Button>
           </Stack>
         ) : (

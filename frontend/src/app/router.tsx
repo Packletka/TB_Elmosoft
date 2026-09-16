@@ -1,4 +1,4 @@
-import { createBrowserRouter, redirect } from "react-router-dom";
+import { createBrowserRouter } from "react-router-dom";
 
 import HomePage from "../pages/HomePage";
 
@@ -15,137 +15,64 @@ import MyAppointmentsPage from "../pages/appointments/MyAppointmentsPage";
 import ProfilePage from "../pages/profile/ProfilePage";
 import EditProfilePage from "../pages/profile/EditProfilePage";
 import ProfileSettingsPage from "../pages/profile/ProfileSettingsPage";
-import ChangeEmailPage from "../pages/profile/ChangeEmailPage";
-import ChangePhonePage from "../pages/profile/ChangePhonePage";
-import ChangePasswordPage from "../pages/profile/ChangePasswordPage";
 
 import LoginPage from "../pages/auth/LoginPage";
 import RegisterPage from "../pages/auth/RegisterPage";
-import ForgotPasswordPage from "../pages/auth/ForgotPasswordPage";
 
 import NotFoundPage from "../pages/NotFoundPage";
 
 import Layout from "../components/layout/Layout";
-
-import { isMockAuthenticated } from "../mocks/auth";
-
-type AuthReason = "appointment" | "account";
-
-function requireMockAuthentication(reason: AuthReason) {
-  return ({ request }: { request: Request }) => {
-    if (isMockAuthenticated()) {
-      return null;
-    }
-
-    const url = new URL(request.url);
-
-    const returnTo = `${url.pathname}${url.search}`;
-
-    const searchParams = new URLSearchParams({
-      reason,
-      returnTo,
-    });
-
-    return redirect(`/login?${searchParams.toString()}`);
-  };
-}
-
-function redirectAuthenticatedUser() {
-  if (isMockAuthenticated()) {
-    return redirect("/");
-  }
-
-  return null;
-}
+import RequireAuth from "../components/auth/RequireAuth";
+// import RequireRole from "../components/auth/RequireRole";
+import RedirectIfAuthenticated from "../components/auth/RedirectIfAuthenticated";
 
 export const router = createBrowserRouter([
   {
     element: <Layout />,
     children: [
+      { path: "/", element: <HomePage /> },
+
       {
-        path: "/",
-        element: <HomePage />,
+        element: <RequireAuth reason="account" />,
+        children: [
+          { path: "/appointments", element: <MyAppointmentsPage /> },
+          { path: "/profile", element: <ProfilePage /> },
+          { path: "/profile/edit", element: <EditProfilePage /> },
+          { path: "/profile/settings", element: <ProfileSettingsPage /> },
+        ],
       },
+
       {
-        path: "/appointments",
-        element: <MyAppointmentsPage />,
-        loader: requireMockAuthentication("account"),
+        element: <RequireAuth reason="appointment" />,
+        children: [
+          {
+            path: "/appointments/confirm/:talonId",
+            element: <AppointmentConfirmationPage />,
+          },
+          {
+            path: "/appointments/success/:talonId",
+            element: <AppointmentSuccessPage />,
+          },
+        ],
       },
+
       {
-        path: "/profile",
-        element: <ProfilePage />,
-        loader: requireMockAuthentication("account"),
+        element: <RedirectIfAuthenticated />,
+        children: [
+          { path: "/register", element: <RegisterPage /> },
+          { path: "/login", element: <LoginPage /> },
+        ],
       },
-      {
-        path: "/profile/edit",
-        element: <EditProfilePage />,
-        loader: requireMockAuthentication("account"),
-      },
-      {
-        path: "/profile/settings",
-        element: <ProfileSettingsPage />,
-        loader: requireMockAuthentication("account"),
-      },
-      {
-        path: "/register",
-        element: <RegisterPage />,
-        loader: redirectAuthenticatedUser,
-      },
-      {
-        path: "/login",
-        element: <LoginPage />,
-        loader: redirectAuthenticatedUser,
-      },
-      {
-        path: "/forgot-password",
-        element: <ForgotPasswordPage />,
-        loader: redirectAuthenticatedUser,
-      },
-      {
-        path: "/organisations",
-        element: <OrganisationsPage />,
-      },
-      {
-        path: "/organisations/:organisationId",
-        element: <OrganisationPage />,
-      },
+
+      { path: "/organisations", element: <OrganisationsPage /> },
+      { path: "/organisations/:organisationId", element: <OrganisationPage /> },
       {
         path: "/organisations/:organisationId/doctors",
         element: <DoctorsPage />,
       },
-      {
-        path: "/doctors/:doctorId",
-        element: <DoctorPage />,
-      },
-      {
-        path: "/appointments/confirm/:talonId",
-        element: <AppointmentConfirmationPage />,
-        loader: requireMockAuthentication("appointment"),
-      },
-      {
-        path: "/appointments/success/:talonId",
-        element: <AppointmentSuccessPage />,
-        loader: requireMockAuthentication("appointment"),
-      },
-      {
-        path: "/profile/settings/email",
-        element: <ChangeEmailPage />,
-        loader: requireMockAuthentication("account"),
-      },
-      {
-        path: "/profile/settings/phone",
-        element: <ChangePhonePage />,
-        loader: requireMockAuthentication("account"),
-      },
-      {
-        path: "/profile/settings/password",
-        element: <ChangePasswordPage />,
-        loader: requireMockAuthentication("account"),
-      },
-      {
-        path: "*",
-        element: <NotFoundPage />,
-      },
+      { path: "/doctors/:doctorId", element: <DoctorPage /> },
+
+      { path: "*", element: <NotFoundPage /> },
     ],
   },
 ]);

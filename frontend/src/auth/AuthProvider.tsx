@@ -64,6 +64,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }
 
+  async function refreshUser() {
+    const meRes = await authApi.getCurrentUser();
+    setUser(meRes.data);
+  }
+
   return (
     <AuthContext.Provider
       value={{
@@ -72,6 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isInitialized,
         login,
         logout,
+        refreshUser,
       }}
     >
       {children}
