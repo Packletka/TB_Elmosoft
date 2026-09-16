@@ -85,7 +85,7 @@ class Customer(models.Model):
     address = models.CharField(max_length=150, blank=True, default="")
 
     def __str__(self):
-        return f"{self.last_name} {self.first_name} {self.patronymic}"
+        return f"{self.sex} {self.phone}"
 
     def save(self, *args, **kwargs):
         self.full_clean()
@@ -106,7 +106,7 @@ class Doctor(models.Model):
     slot_duration = models.IntegerField(validators=[MinValueValidator(1)])
 
     def __str__(self):
-        return f"{self.last_name} {self.first_name} {self.patronymic}"
+        return f"{self.position} {self.cabinet}"
 
     def save(self, *args, **kwargs):
         self.full_clean()
@@ -125,7 +125,7 @@ class Representative(models.Model):
     health_organisation = models.ForeignKey(HealthOrganisation, on_delete=models.CASCADE, null=True, blank=True)
 
     def __str__(self):
-        return f"{self.user.last_name} {self.user.first_name}"
+        return f"Representative №{self.id}"
 
     def save(self, *args, **kwargs):
         self.full_clean()
