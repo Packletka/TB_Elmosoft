@@ -1,5 +1,9 @@
+import { useEffect, useState } from "react";
 import { Link as RouterLink, useParams } from "react-router-dom";
+import axios from "axios";
 
+import Alert from "@mui/material/Alert";
+import CircularProgress from "@mui/material/CircularProgress";
 import Container from "@mui/material/Container";
 import Divider from "@mui/material/Divider";
 import Link from "@mui/material/Link";
@@ -8,18 +12,85 @@ import Typography from "@mui/material/Typography";
 import KeyboardBackspaceIcon from "@mui/icons-material/KeyboardBackspace";
 
 import PositionCard from "../../components/doctors/PositionCard";
-import { doctors } from "../../mocks/doctors";
-import { organisations } from "../../mocks/organisations";
 import ResourceNotFound from "../../components/ui/ResourceNotFound";
+import { organisationApi } from "../../api/organisations";
+import { doctorApi } from "../../api/doctors";
+import { extractErrorMessages } from "../../api/errorMessages";
+import type { HealthOrganisationResponse } from "../../types/api/healthOrganisation";
+import type { DoctorResponse } from "../../types/api/doctor";
 
 function OrganisationPage() {
   const { organisationId } = useParams();
 
-  const organisation = organisations.find(
-    (organisation) => organisation.id === Number(organisationId),
-  );
+  const [organisation, setOrganisation] =
+    useState<HealthOrganisationResponse | null>(null);
+  const [doctors, setDoctors] = useState<DoctorResponse[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-  if (!organisation) {
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      const numericId = Number(organisationId);
+
+      if (!organisationId || !Number.isFinite(numericId)) {
+        return { kind: "notFound" as const };
+      }
+
+      try {
+        const [orgRes, doctorsRes] = await Promise.all([
+          organisationApi.getOrganisation(numericId),
+          doctorApi.getDoctorsByOrganisation(numericId),
+        ]);
+        return {
+          kind: "success" as const,
+          organisation: orgRes.data,
+          doctors: doctorsRes.data,
+        };
+      } catch (err) {
+        if (axios.isAxiosError(err) && err.response?.status === 404) {
+          return { kind: "notFound" as const };
+        }
+        return {
+          kind: "error" as const,
+          message: extractErrorMessages(err).join(" "),
+        };
+      }
+    }
+
+    load().then((result) => {
+      if (cancelled) return;
+
+      if (result.kind === "success") {
+        setOrganisation(result.organisation);
+        setDoctors(result.doctors);
+      } else if (result.kind === "notFound") {
+        setNotFound(true);
+      } else {
+        setLoadError(result.message);
+      }
+
+      setIsLoading(false);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [organisationId]);
+
+  if (isLoading) {
+    return (
+      <Container maxWidth="md">
+        <Stack sx={{ alignItems: "center", py: 6 }}>
+          <CircularProgress />
+        </Stack>
+      </Container>
+    );
+  }
+
+  if (notFound) {
     return (
       <ResourceNotFound
         title="Organisation not found"
@@ -30,13 +101,17 @@ function OrganisationPage() {
     );
   }
 
-  const organisationDoctors = doctors.filter(
-    (doctor) => doctor.health_organisation === organisation.id,
-  );
+  if (loadError || !organisation) {
+    return (
+      <Container maxWidth="md">
+        <Alert severity="error">
+          {loadError ?? "Something went wrong. Please try again."}
+        </Alert>
+      </Container>
+    );
+  }
 
-  const positions = [
-    ...new Set(organisationDoctors.map((doctor) => doctor.position)),
-  ];
+  const positions = [...new Set(doctors.map((doctor) => doctor.position))];
 
   return (
     <Container maxWidth="md">

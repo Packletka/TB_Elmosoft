@@ -7,10 +7,10 @@ import CardContent from "@mui/material/CardContent";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
-import type { Doctor } from "../../types/doctor";
+import type { DoctorResponse } from "../../types/api/doctor";
 
 interface DoctorCardProps {
-  doctor: Doctor;
+  doctor: DoctorResponse;
 }
 
 function DoctorCard({ doctor }: DoctorCardProps) {
