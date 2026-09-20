@@ -85,7 +85,7 @@ class Customer(models.Model):
     address = models.CharField(max_length=150, blank=True, default="")
 
     def __str__(self):
-        return f"{self.sex} {self.phone}"
+        return f"{self.sex} {self.phone} {self.user.email}"
 
     def save(self, *args, **kwargs):
         self.full_clean()

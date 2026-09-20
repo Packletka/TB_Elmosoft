@@ -1,30 +1,86 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link as RouterLink, useNavigate, useParams } from "react-router-dom";
+import axios from "axios";
 
 import Alert from "@mui/material/Alert";
+import Avatar from "@mui/material/Avatar";
 import Button from "@mui/material/Button";
+import CircularProgress from "@mui/material/CircularProgress";
 import Container from "@mui/material/Container";
 import Divider from "@mui/material/Divider";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import Avatar from "@mui/material/Avatar";
 
 import ResourceNotFound from "../../components/ui/ResourceNotFound";
-import { bookMockTalon, talons } from "../../mocks/appointments";
-import { doctors } from "../../mocks/doctors";
-import { organisations } from "../../mocks/organisations";
-import { customers } from "../../mocks/customers";
-import { getMockCurrentCustomerId } from "../../mocks/auth";
+import { appointmentApi } from "../../api/appointments";
+import { extractErrorMessages } from "../../api/errorMessages";
+import { useAuth } from "../../auth/useAuth";
+import type { TalonResponse } from "../../types/api/appointment";
 
 function AppointmentConfirmationPage() {
   const { talonId } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
+  const [talon, setTalon] = useState<TalonResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  const [isBooking, setIsBooking] = useState(false);
   const [bookingError, setBookingError] = useState<string | null>(null);
 
-  const talon = talons.find((talon) => talon.id === Number(talonId));
+  useEffect(() => {
+    let cancelled = false;
 
-  if (!talon) {
+    async function load() {
+      const numericId = Number(talonId);
+
+      if (!talonId || !Number.isFinite(numericId)) {
+        return { kind: "notFound" as const };
+      }
+
+      try {
+        const res = await appointmentApi.getTalon(numericId);
+        return { kind: "success" as const, talon: res.data };
+      } catch (err) {
+        if (axios.isAxiosError(err) && err.response?.status === 404) {
+          return { kind: "notFound" as const };
+        }
+        return { kind: "error" as const, message: extractErrorMessages(err).join(" ") };
+      }
+    }
+
+    load().then((result) => {
+      if (cancelled) return;
+
+      if (result.kind === "success") {
+        setTalon(result.talon);
+      } else if (result.kind === "notFound") {
+        setNotFound(true);
+      } else {
+        setLoadError(result.message);
+      }
+
+      setIsLoading(false);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [talonId]);
+
+  if (isLoading) {
+    return (
+      <Container maxWidth="md">
+        <Stack sx={{ alignItems: "center", py: 6 }}>
+          <CircularProgress />
+        </Stack>
+      </Container>
+    );
+  }
+
+  if (notFound) {
     return (
       <ResourceNotFound
         title="Talon not found"
@@ -35,79 +91,55 @@ function AppointmentConfirmationPage() {
     );
   }
 
-  const doctor = doctors.find((doctor) => doctor.id === talon.doctor);
-
-  if (!doctor) {
+  if (loadError || !talon) {
     return (
-      <ResourceNotFound
-        title="Doctor not found"
-        message="The doctor associated with this talon does not exist."
-        backTo="/organisations"
-        backLabel="Back to Health Organisations"
-      />
+      <Container maxWidth="md">
+        <Alert severity="error">{loadError ?? "Something went wrong. Please try again."}</Alert>
+      </Container>
     );
   }
 
-  const organisation = organisations.find(
-    (organisation) => organisation.id === doctor.health_organisation,
-  );
-
-  if (!organisation) {
+  if (!user) {
+    // Shouldn't be reachable - this route is wrapped in RequireAuth - but
+    // fail safely rather than crash on user.email below if it somehow is.
     return (
-      <ResourceNotFound
-        title="Organisation not found"
-        message="The health organisation associated with this doctor does not exist."
-        backTo="/organisations"
-        backLabel="Back to Health Organisations"
-      />
+      <Container maxWidth="md">
+        <Alert severity="error">You must be signed in to view this page.</Alert>
+      </Container>
     );
   }
 
-  const currentCustomerId = getMockCurrentCustomerId();
-
-  const customer = customers.find(
-    (customer) => customer.id === currentCustomerId,
-  );
-
-  if (!customer) {
-    return (
-      <ResourceNotFound
-        title="Customer not found"
-        message="The authenticated customer could not be found."
-        backTo="/organisations"
-        backLabel="Back to Health Organisations"
-      />
-    );
-  }
-
-  const handleConfirmAppointment = () => {
+  const handleConfirmAppointment = async () => {
     setBookingError(null);
+    setIsBooking(true);
 
-    const bookedTalon = bookMockTalon(talon.id, customer.id);
-
-    if (!bookedTalon) {
-      setBookingError("This talon is no longer available.");
-
-      return;
+    try {
+      const res = await appointmentApi.bookTalon(talon.id);
+      navigate(`/appointments/success/${res.data.id}`, { replace: true });
+    } catch (err) {
+      if (axios.isAxiosError(err) && err.response?.status === 409) {
+        setBookingError("This talon is no longer available.");
+        setTalon((current) => (current ? { ...current, is_free: false } : current));
+      } else if (axios.isAxiosError(err) && err.response?.status === 400) {
+        setBookingError(err.response.data?.detail ?? "This appointment can no longer be booked.");
+      } else {
+        setBookingError(extractErrorMessages(err).join(" "));
+      }
+    } finally {
+      setIsBooking(false);
     }
-
-    navigate(`/appointments/success/${bookedTalon.id}`, {
-      replace: true,
-    });
   };
 
-  const customerInitials =
-    `${customer.first_name[0]}${customer.last_name[0]}`.toUpperCase();
-
-  const customerFullName = [
-    customer.last_name,
-    customer.first_name,
-    customer.patronymic,
-  ]
+  const patientFullName = [user.last_name, user.first_name, user.patronymic]
     .filter(Boolean)
     .join(" ");
 
-  const isAvailable = talon.customer === null;
+  const patientInitials =
+    `${user.first_name.charAt(0)}${user.last_name.charAt(0)}`.toUpperCase();
+
+  const doctorFullName = [talon.doctor.last_name, talon.doctor.first_name, talon.doctor.patronymic]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <Container maxWidth="md">
@@ -116,7 +148,7 @@ function AppointmentConfirmationPage() {
           Appointment confirmation
         </Typography>
 
-        {!isAvailable && (
+        {!talon.is_free && (
           <Alert severity="warning">This talon is no longer available.</Alert>
         )}
 
@@ -126,13 +158,12 @@ function AppointmentConfirmationPage() {
           </Typography>
 
           <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
-            <Avatar>{customerInitials}</Avatar>
+            <Avatar>{patientInitials}</Avatar>
 
             <Stack spacing={0.5}>
-              <Typography variant="h6">{customerFullName}</Typography>
-
+              <Typography variant="h6">{patientFullName}</Typography>
               <Typography variant="body2" color="text.secondary">
-                {customer.email}
+                {user.email}
               </Typography>
             </Stack>
           </Stack>
@@ -144,8 +175,9 @@ function AppointmentConfirmationPage() {
           <Typography variant="body2" color="text.secondary">
             Organisation
           </Typography>
-
-          <Typography variant="h6">{organisation.name}</Typography>
+          <Typography variant="h6">
+            {talon.doctor.health_organisation?.name ?? "—"}
+          </Typography>
         </Stack>
 
         <Divider />
@@ -154,26 +186,21 @@ function AppointmentConfirmationPage() {
           <Typography variant="body2" color="text.secondary">
             Doctor
           </Typography>
-
-          <Typography variant="h6">
-            {doctor.last_name} {doctor.first_name} {doctor.patronymic}
-          </Typography>
+          <Typography variant="h6">{doctorFullName}</Typography>
         </Stack>
 
         <Stack spacing={1}>
           <Typography variant="body2" color="text.secondary">
             Position
           </Typography>
-
-          <Typography>{doctor.position}</Typography>
+          <Typography>{talon.doctor.position}</Typography>
         </Stack>
 
         <Stack spacing={1}>
           <Typography variant="body2" color="text.secondary">
             Cabinet
           </Typography>
-
-          <Typography>{doctor.cabinet}</Typography>
+          <Typography>{talon.doctor.cabinet}</Typography>
         </Stack>
 
         <Divider />
@@ -182,7 +209,6 @@ function AppointmentConfirmationPage() {
           <Typography variant="body2" color="text.secondary">
             Date
           </Typography>
-
           <Typography>{talon.date}</Typography>
         </Stack>
 
@@ -190,8 +216,7 @@ function AppointmentConfirmationPage() {
           <Typography variant="body2" color="text.secondary">
             Time
           </Typography>
-
-          <Typography>{talon.time}</Typography>
+          <Typography>{talon.time.slice(0, 5)}</Typography>
         </Stack>
 
         {bookingError && <Alert severity="error">{bookingError}</Alert>}
@@ -200,7 +225,8 @@ function AppointmentConfirmationPage() {
           <Button
             variant="outlined"
             component={RouterLink}
-            to={`/doctors/${doctor.id}?date=${talon.date}`}
+            to={`/doctors/${talon.doctor.id}?date=${talon.date}`}
+            disabled={isBooking}
           >
             Previous step
           </Button>
@@ -208,9 +234,9 @@ function AppointmentConfirmationPage() {
           <Button
             variant="contained"
             onClick={handleConfirmAppointment}
-            disabled={!isAvailable}
+            disabled={!talon.is_free || isBooking}
           >
-            Confirm appointment
+            {isBooking ? "Booking..." : "Confirm appointment"}
           </Button>
         </Stack>
       </Stack>

@@ -6,10 +6,19 @@ export const appointmentApi = {
     return apiClient.get<TalonResponse[]>("/appointment");
   },
 
-  getAvailableTalons(doctorId: number, date: string) {
-    return apiClient.get<TalonResponse[]>(
-      `/appointment?doctor=${doctorId}&date=${date}&free=true&active=true`,
-    );
+  getAvailableTalons(doctorId: number, date?: string) {
+    return apiClient.get<TalonResponse[]>("/appointment", {
+      params: {
+        doctor: doctorId,
+        free: true,
+        active: true,
+        ...(date ? { date } : {}),
+      },
+    });
+  },
+
+  getTalon(id: number) {
+    return apiClient.get<TalonResponse>(`/appointment/${id}`);
   },
 
   bookTalon(id: number) {

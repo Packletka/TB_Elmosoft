@@ -1,25 +1,31 @@
+import { useEffect, useState } from "react";
 import {
   Link as RouterLink,
   useParams,
   useSearchParams,
 } from "react-router-dom";
+import axios from "axios";
 
 import dayjs from "dayjs";
 import customParseFormat from "dayjs/plugin/customParseFormat";
 
+import Alert from "@mui/material/Alert";
 import Avatar from "@mui/material/Avatar";
+import Button from "@mui/material/Button";
+import CircularProgress from "@mui/material/CircularProgress";
 import Container from "@mui/material/Container";
 import Link from "@mui/material/Link";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { DateCalendar } from "@mui/x-date-pickers/DateCalendar";
-import Button from "@mui/material/Button";
-import Alert from "@mui/material/Alert";
 
-import { doctors } from "../../mocks/doctors";
-import { getPluralPosition } from "../../utils/position";
 import ResourceNotFound from "../../components/ui/ResourceNotFound";
-import { talons } from "../../mocks/appointments";
+import { doctorApi } from "../../api/doctors";
+import { appointmentApi } from "../../api/appointments";
+import { extractErrorMessages } from "../../api/errorMessages";
+import { getPluralPosition } from "../../utils/position";
+import type { DoctorResponse } from "../../types/api/doctor";
+import type { TalonResponse } from "../../types/api/appointment";
 
 dayjs.extend(customParseFormat);
 
@@ -27,9 +33,67 @@ function DoctorPage() {
   const { doctorId } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const doctor = doctors.find((doctor) => doctor.id === Number(doctorId));
+  const [doctor, setDoctor] = useState<DoctorResponse | null>(null);
+  const [talons, setTalons] = useState<TalonResponse[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-  if (!doctor) {
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      const numericId = Number(doctorId);
+
+      if (!doctorId || !Number.isFinite(numericId)) {
+        return { kind: "notFound" as const };
+      }
+
+      try {
+        const [doctorRes, talonsRes] = await Promise.all([
+          doctorApi.getDoctor(numericId),
+          appointmentApi.getAvailableTalons(numericId),
+        ]);
+        return { kind: "success" as const, doctor: doctorRes.data, talons: talonsRes.data };
+      } catch (err) {
+        if (axios.isAxiosError(err) && err.response?.status === 404) {
+          return { kind: "notFound" as const };
+        }
+        return { kind: "error" as const, message: extractErrorMessages(err).join(" ") };
+      }
+    }
+
+    load().then((result) => {
+      if (cancelled) return;
+
+      if (result.kind === "success") {
+        setDoctor(result.doctor);
+        setTalons(result.talons);
+      } else if (result.kind === "notFound") {
+        setNotFound(true);
+      } else {
+        setLoadError(result.message);
+      }
+
+      setIsLoading(false);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [doctorId]);
+
+  if (isLoading) {
+    return (
+      <Container maxWidth="md">
+        <Stack sx={{ alignItems: "center", py: 6 }}>
+          <CircularProgress />
+        </Stack>
+      </Container>
+    );
+  }
+
+  if (notFound) {
     return (
       <ResourceNotFound
         title="Doctor not found"
@@ -40,12 +104,15 @@ function DoctorPage() {
     );
   }
 
-  const freeTalons = talons.filter(
-    (talon) => talon.doctor === doctor.id && talon.customer === null,
-  );
+  if (loadError || !doctor) {
+    return (
+      <Container maxWidth="md">
+        <Alert severity="error">{loadError ?? "Something went wrong. Please try again."}</Alert>
+      </Container>
+    );
+  }
 
-  const availableDates = [...new Set(freeTalons.map((talon) => talon.date))];
-
+  const availableDates = [...new Set(talons.map((talon) => talon.date))];
   const availableDateSet = new Set(availableDates);
 
   const dateParam = searchParams.get("date");
@@ -63,7 +130,7 @@ function DoctorPage() {
   const selectedDateString = selectedDate?.format("YYYY-MM-DD");
 
   const selectedDateTalons = selectedDateString
-    ? freeTalons.filter((talon) => talon.date === selectedDateString)
+    ? talons.filter((talon) => talon.date === selectedDateString)
     : [];
 
   const initials =
@@ -71,7 +138,7 @@ function DoctorPage() {
 
   const backLink =
     doctor.health_organisation !== null
-      ? `/organisations/${doctor.health_organisation}/doctors?position=${encodeURIComponent(
+      ? `/organisations/${doctor.health_organisation.id}/doctors?position=${encodeURIComponent(
           doctor.position,
         )}`
       : "/organisations";
@@ -84,13 +151,7 @@ function DoctorPage() {
         </Link>
 
         <Stack direction="row" spacing={3} sx={{ alignItems: "center" }}>
-          <Avatar
-            sx={{
-              width: 80,
-              height: 80,
-              fontSize: 28,
-            }}
-          >
+          <Avatar sx={{ width: 80, height: 80, fontSize: 28 }}>
             {initials}
           </Avatar>
 
@@ -107,8 +168,7 @@ function DoctorPage() {
 
         <Stack spacing={1}>
           <Typography>Position: {doctor.position}</Typography>
-
-          {doctor.cabinet && <Typography>Cabinet: {doctor.cabinet}</Typography>}
+          <Typography>Cabinet: {doctor.cabinet}</Typography>
         </Stack>
       </Stack>
 
@@ -128,21 +188,14 @@ function DoctorPage() {
             <DateCalendar
               value={selectedDate}
               onChange={(newDate) => {
-                if (!newDate) {
-                  return;
-                }
+                if (!newDate) return;
 
                 const newDateString = newDate.format("YYYY-MM-DD");
-
-                if (!availableDateSet.has(newDateString)) {
-                  return;
-                }
+                if (!availableDateSet.has(newDateString)) return;
 
                 setSearchParams((previousParams) => {
                   const nextParams = new URLSearchParams(previousParams);
-
                   nextParams.set("date", newDateString);
-
                   return nextParams;
                 });
               }}
@@ -157,12 +210,7 @@ function DoctorPage() {
                   Available times
                 </Typography>
 
-                <Stack
-                  direction="row"
-                  spacing={1}
-                  useFlexGap
-                  sx={{ flexWrap: "wrap" }}
-                >
+                <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>
                   {selectedDateTalons.map((talon) => (
                     <Button
                       key={talon.id}
@@ -170,7 +218,7 @@ function DoctorPage() {
                       component={RouterLink}
                       to={`/appointments/confirm/${talon.id}`}
                     >
-                      {talon.time}
+                      {talon.time.slice(0, 5)}
                     </Button>
                   ))}
                 </Stack>

@@ -23,7 +23,7 @@ import NotFoundPage from "../pages/NotFoundPage";
 
 import Layout from "../components/layout/Layout";
 import RequireAuth from "../components/auth/RequireAuth";
-// import RequireRole from "../components/auth/RequireRole";
+import RequireRole from "../components/auth/RequireRole";
 import RedirectIfAuthenticated from "../components/auth/RedirectIfAuthenticated";
 
 export const router = createBrowserRouter([
@@ -46,12 +46,11 @@ export const router = createBrowserRouter([
         element: <RequireAuth reason="appointment" />,
         children: [
           {
-            path: "/appointments/confirm/:talonId",
-            element: <AppointmentConfirmationPage />,
-          },
-          {
-            path: "/appointments/success/:talonId",
-            element: <AppointmentSuccessPage />,
+            element: <RequireRole allowedRoles={["customer"]} />,
+            children: [
+              { path: "/appointments/confirm/:talonId", element: <AppointmentConfirmationPage /> },
+              { path: "/appointments/success/:talonId", element: <AppointmentSuccessPage /> },
+            ],
           },
         ],
       },
