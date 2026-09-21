@@ -1,73 +1,109 @@
+import { useEffect, useState } from "react";
 import { Link as RouterLink, useParams } from "react-router-dom";
+import axios from "axios";
 
+import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
+import CircularProgress from "@mui/material/CircularProgress";
 import Container from "@mui/material/Container";
 import Divider from "@mui/material/Divider";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
 import ResourceNotFound from "../../components/ui/ResourceNotFound";
-import { talons } from "../../mocks/appointments";
-import { doctors } from "../../mocks/doctors";
-import { organisations } from "../../mocks/organisations";
-import { getMockCurrentCustomerId } from "../../mocks/auth";
+import { appointmentApi } from "../../api/appointments";
+import { extractErrorMessages } from "../../api/errorMessages";
+import type { TalonResponse } from "../../types/api/appointment";
 
 function AppointmentSuccessPage() {
   const { talonId } = useParams();
 
-  const talon = talons.find((talon) => talon.id === Number(talonId));
+  const [talon, setTalon] = useState<TalonResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-  if (!talon) {
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      const numericId = Number(talonId);
+
+      if (!talonId || !Number.isFinite(numericId)) {
+        return { kind: "notFound" as const };
+      }
+
+      try {
+        const res = await appointmentApi.getTalon(numericId);
+        return { kind: "success" as const, talon: res.data };
+      } catch (err) {
+        if (axios.isAxiosError(err) && err.response?.status === 404) {
+          return { kind: "notFound" as const };
+        }
+        return {
+          kind: "error" as const,
+          message: extractErrorMessages(err).join(" "),
+        };
+      }
+    }
+
+    load().then((result) => {
+      if (cancelled) return;
+
+      if (result.kind === "success") {
+        setTalon(result.talon);
+      } else if (result.kind === "notFound") {
+        setNotFound(true);
+      } else {
+        setLoadError(result.message);
+      }
+
+      setIsLoading(false);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [talonId]);
+
+  if (isLoading) {
     return (
-      <ResourceNotFound
-        title="Talon not found"
-        message="The requested talon does not exist."
-        backTo="/organisations"
-        backLabel="Back to Health Organisations"
-      />
+      <Container maxWidth="md">
+        <Stack sx={{ alignItems: "center", py: 6 }}>
+          <CircularProgress />
+        </Stack>
+      </Container>
     );
   }
 
-  const currentCustomerId = getMockCurrentCustomerId();
-
-  if (talon.customer !== currentCustomerId) {
+  if (notFound) {
     return (
       <ResourceNotFound
         title="Appointment not found"
-        message="This appointment does not belong to the current customer."
+        message="The requested appointment does not exist."
         backTo="/organisations"
         backLabel="Back to Health Organisations"
       />
     );
   }
 
-  const doctor = doctors.find((doctor) => doctor.id === talon.doctor);
-
-  if (!doctor) {
+  if (loadError || !talon) {
     return (
-      <ResourceNotFound
-        title="Doctor not found"
-        message="The doctor associated with this talon does not exist."
-        backTo="/organisations"
-        backLabel="Back to Health Organisations"
-      />
+      <Container maxWidth="md">
+        <Alert severity="error">
+          {loadError ?? "Something went wrong. Please try again."}
+        </Alert>
+      </Container>
     );
   }
 
-  const organisation = organisations.find(
-    (organisation) => organisation.id === doctor.health_organisation,
-  );
-
-  if (!organisation) {
-    return (
-      <ResourceNotFound
-        title="Organisation not found"
-        message="The health organisation associated with this doctor does not exist."
-        backTo="/organisations"
-        backLabel="Back to Health Organisations"
-      />
-    );
-  }
+  const doctorFullName = [
+    talon.doctor.last_name,
+    talon.doctor.first_name,
+    talon.doctor.patronymic,
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <Container maxWidth="md">
@@ -86,34 +122,30 @@ function AppointmentSuccessPage() {
           <Typography variant="body2" color="text.secondary">
             Organisation
           </Typography>
-
-          <Typography variant="h6">{organisation.name}</Typography>
+          <Typography variant="h6">
+            {talon.doctor.health_organisation?.name ?? "—"}
+          </Typography>
         </Stack>
 
         <Stack spacing={1}>
           <Typography variant="body2" color="text.secondary">
             Doctor
           </Typography>
-
-          <Typography>
-            {doctor.last_name} {doctor.first_name} {doctor.patronymic}
-          </Typography>
+          <Typography>{doctorFullName}</Typography>
         </Stack>
 
         <Stack spacing={1}>
           <Typography variant="body2" color="text.secondary">
             Position
           </Typography>
-
-          <Typography>{doctor.position}</Typography>
+          <Typography>{talon.doctor.position}</Typography>
         </Stack>
 
         <Stack spacing={1}>
           <Typography variant="body2" color="text.secondary">
             Cabinet
           </Typography>
-
-          <Typography>{doctor.cabinet}</Typography>
+          <Typography>{talon.doctor.cabinet}</Typography>
         </Stack>
 
         <Divider />
@@ -122,7 +154,6 @@ function AppointmentSuccessPage() {
           <Typography variant="body2" color="text.secondary">
             Date
           </Typography>
-
           <Typography>{talon.date}</Typography>
         </Stack>
 
@@ -130,14 +161,17 @@ function AppointmentSuccessPage() {
           <Typography variant="body2" color="text.secondary">
             Time
           </Typography>
-
-          <Typography>{talon.time}</Typography>
+          <Typography>{talon.time.slice(0, 5)}</Typography>
         </Stack>
 
         <Button
           variant="contained"
           component={RouterLink}
-          to={`/organisations/${organisation.id}`}
+          to={
+            talon.doctor.health_organisation
+              ? `/organisations/${talon.doctor.health_organisation.id}`
+              : "/organisations"
+          }
         >
           Book another appointment
         </Button>
