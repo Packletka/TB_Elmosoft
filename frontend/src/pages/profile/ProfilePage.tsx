@@ -10,38 +10,23 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import Button from "@mui/material/Button";
 import Paper from "@mui/material/Paper";
 
-import ResourceNotFound from "../../components/ui/ResourceNotFound";
-import { getMockCurrentCustomerId } from "../../mocks/auth";
-import { customers } from "../../mocks/customers";
+import { useAuth } from "../../auth/useAuth";
 
 function ProfilePage() {
-  const currentCustomerId = getMockCurrentCustomerId();
+  const { user } = useAuth();
 
-  const customer = customers.find(
-    (customer) => customer.id === currentCustomerId,
-  );
-
-  if (!customer) {
-    return (
-      <ResourceNotFound
-        title="Customer not found"
-        message="The authenticated customer could not be found."
-        backTo="/organisations"
-        backLabel="Back to Health Organisations"
-      />
-    );
+  // Guarded by RequireAuth at the route level - user is guaranteed
+  // non-null in practice, but fail safely rather than assume.
+  if (!user) {
+    return null;
   }
 
-  const customerInitials =
-    `${customer.first_name[0]}${customer.last_name[0]}`.toUpperCase();
-
-  const customerFullName = [
-    customer.last_name,
-    customer.first_name,
-    customer.patronymic,
-  ]
+  const fullName = [user.last_name, user.first_name, user.patronymic]
     .filter(Boolean)
     .join(" ");
+
+  const initials =
+    `${user.first_name.charAt(0)}${user.last_name.charAt(0)}`.toUpperCase();
 
   return (
     <Container maxWidth="md">
@@ -51,39 +36,20 @@ function ProfilePage() {
         </Typography>
 
         <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
-          <Avatar
-            sx={{
-              width: 64,
-              height: 64,
-              fontSize: 24,
-            }}
-          >
-            {customerInitials}
+          <Avatar sx={{ width: 64, height: 64, fontSize: 24 }}>
+            {initials}
           </Avatar>
 
           <Stack spacing={0.5}>
             <Typography variant="h5" component="h2">
-              {customerFullName}
+              {fullName}
             </Typography>
-
-            <Typography color="text.secondary">{customer.email}</Typography>
+            <Typography color="text.secondary">{user.email}</Typography>
           </Stack>
         </Stack>
 
-        <Stack
-          direction={{
-            xs: "column",
-            sm: "row",
-          }}
-          spacing={2}
-        >
-          <Paper
-            variant="outlined"
-            sx={{
-              p: 2,
-              flex: 1,
-            }}
-          >
+        <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+          <Paper variant="outlined" sx={{ p: 2, flex: 1 }}>
             <Stack spacing={1}>
               <Button
                 component={RouterLink}
@@ -93,20 +59,13 @@ function ProfilePage() {
               >
                 Edit profile
               </Button>
-
               <Typography variant="body2" color="text.secondary">
                 Change your personal information.
               </Typography>
             </Stack>
           </Paper>
 
-          <Paper
-            variant="outlined"
-            sx={{
-              p: 2,
-              flex: 1,
-            }}
-          >
+          <Paper variant="outlined" sx={{ p: 2, flex: 1 }}>
             <Stack spacing={1}>
               <Button
                 component={RouterLink}
@@ -116,7 +75,6 @@ function ProfilePage() {
               >
                 Account settings
               </Button>
-
               <Typography variant="body2" color="text.secondary">
                 Change your email, phone number or password.
               </Typography>
@@ -135,49 +93,85 @@ function ProfilePage() {
             <Typography variant="body2" color="text.secondary">
               Last name
             </Typography>
-
-            <Typography>{customer.last_name}</Typography>
+            <Typography>{user.last_name || "—"}</Typography>
           </Stack>
 
           <Stack spacing={0.5}>
             <Typography variant="body2" color="text.secondary">
               First name
             </Typography>
-
-            <Typography>{customer.first_name}</Typography>
+            <Typography>{user.first_name || "—"}</Typography>
           </Stack>
 
           <Stack spacing={0.5}>
             <Typography variant="body2" color="text.secondary">
               Patronymic
             </Typography>
-
-            <Typography>{customer.patronymic || "—"}</Typography>
+            <Typography>{user.patronymic || "—"}</Typography>
           </Stack>
 
-          <Stack spacing={0.5}>
-            <Typography variant="body2" color="text.secondary">
-              Birthday
-            </Typography>
+          {user.role === "customer" && (
+            <>
+              <Stack spacing={0.5}>
+                <Typography variant="body2" color="text.secondary">
+                  Sex
+                </Typography>
+                <Typography>
+                  {user.profile.sex === "M" ? "Male" : "Female"}
+                </Typography>
+              </Stack>
 
-            <Typography>{customer.birthday}</Typography>
-          </Stack>
+              <Stack spacing={0.5}>
+                <Typography variant="body2" color="text.secondary">
+                  Birthday
+                </Typography>
+                <Typography>{user.profile.birthday}</Typography>
+              </Stack>
 
-          <Stack spacing={0.5}>
-            <Typography variant="body2" color="text.secondary">
-              Phone
-            </Typography>
+              <Stack spacing={0.5}>
+                <Typography variant="body2" color="text.secondary">
+                  Address
+                </Typography>
+                <Typography>{user.profile.address || "—"}</Typography>
+              </Stack>
+            </>
+          )}
 
-            <Typography>{customer.phone}</Typography>
-          </Stack>
+          {user.role === "doctor" && (
+            <>
+              <Stack spacing={0.5}>
+                <Typography variant="body2" color="text.secondary">
+                  Position
+                </Typography>
+                <Typography>{user.profile.position}</Typography>
+              </Stack>
 
-          <Stack spacing={0.5}>
-            <Typography variant="body2" color="text.secondary">
-              Address
-            </Typography>
+              <Stack spacing={0.5}>
+                <Typography variant="body2" color="text.secondary">
+                  Cabinet
+                </Typography>
+                <Typography>{user.profile.cabinet}</Typography>
+              </Stack>
 
-            <Typography>{customer.address || "—"}</Typography>
-          </Stack>
+              <Stack spacing={0.5}>
+                <Typography variant="body2" color="text.secondary">
+                  Slot duration
+                </Typography>
+                <Typography>{user.profile.slot_duration} minutes</Typography>
+              </Stack>
+            </>
+          )}
+
+          {(user.role === "doctor" || user.role === "representative") && (
+            <Stack spacing={0.5}>
+              <Typography variant="body2" color="text.secondary">
+                Health organisation
+              </Typography>
+              <Typography>
+                {user.profile.health_organisation_id ?? "Not assigned"}
+              </Typography>
+            </Stack>
+          )}
         </Stack>
       </Stack>
     </Container>
