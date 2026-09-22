@@ -13,7 +13,7 @@ import { useAuth } from "../../auth/useAuth";
 function Header() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { isAuthenticated, isInitialized, logout } = useAuth();
+  const { isAuthenticated, isInitialized, logout, user } = useAuth();
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   const currentSearchParams = new URLSearchParams(location.search);
@@ -62,9 +62,11 @@ function Header() {
 
         {!isInitialized ? null : isAuthenticated ? (
           <Stack direction="row" spacing={1}>
-            <Button color="inherit" component={RouterLink} to="/appointments">
-              My appointments
-            </Button>
+            {user?.role === "customer" && (
+              <Button color="inherit" component={RouterLink} to="/appointments">
+                My appointments
+              </Button>
+            )}
 
             <Button color="inherit" component={RouterLink} to="/profile">
               Profile

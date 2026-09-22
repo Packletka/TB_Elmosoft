@@ -35,7 +35,12 @@ export const router = createBrowserRouter([
       {
         element: <RequireAuth reason="account" />,
         children: [
-          { path: "/appointments", element: <MyAppointmentsPage /> },
+          {
+            element: <RequireRole allowedRoles={["customer"]} />,
+            children: [
+              { path: "/appointments", element: <MyAppointmentsPage /> },
+            ],
+          },
           { path: "/profile", element: <ProfilePage /> },
           { path: "/profile/edit", element: <EditProfilePage /> },
           { path: "/profile/settings", element: <ProfileSettingsPage /> },
@@ -48,8 +53,14 @@ export const router = createBrowserRouter([
           {
             element: <RequireRole allowedRoles={["customer"]} />,
             children: [
-              { path: "/appointments/confirm/:talonId", element: <AppointmentConfirmationPage /> },
-              { path: "/appointments/success/:talonId", element: <AppointmentSuccessPage /> },
+              {
+                path: "/appointments/confirm/:talonId",
+                element: <AppointmentConfirmationPage />,
+              },
+              {
+                path: "/appointments/success/:talonId",
+                element: <AppointmentSuccessPage />,
+              },
             ],
           },
         ],

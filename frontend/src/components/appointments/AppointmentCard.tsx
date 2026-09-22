@@ -16,40 +16,28 @@ import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 
-import type { Talon } from "../../types/appointment";
-import type { Doctor } from "../../types/doctor";
-import type { HealthOrganisation } from "../../types/healthOrganisation";
+import type { TalonResponse } from "../../types/api/appointment";
 
 interface AppointmentCardProps {
-  talon: Talon;
-  doctor: Doctor;
-  organisation: HealthOrganisation;
+  talon: TalonResponse;
   onCancel: (talonId: number) => void;
 }
 
-function AppointmentCard({
-  talon,
-  doctor,
-  organisation,
-  onCancel,
-}: AppointmentCardProps) {
+function AppointmentCard({ talon, onCancel }: AppointmentCardProps) {
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
 
   const doctorFullName = [
-    doctor.last_name,
-    doctor.first_name,
-    doctor.patronymic,
+    talon.doctor.last_name,
+    talon.doctor.first_name,
+    talon.doctor.patronymic,
   ]
     .filter(Boolean)
     .join(" ");
 
-  const handleOpenCancelDialog = () => {
-    setIsCancelDialogOpen(true);
-  };
+  const displayTime = talon.time.slice(0, 5);
 
-  const handleCloseCancelDialog = () => {
-    setIsCancelDialogOpen(false);
-  };
+  const handleOpenCancelDialog = () => setIsCancelDialogOpen(true);
+  const handleCloseCancelDialog = () => setIsCancelDialogOpen(false);
 
   const handleConfirmCancellation = () => {
     onCancel(talon.id);
@@ -64,18 +52,14 @@ function AppointmentCard({
             <Stack
               direction="row"
               spacing={2}
-              sx={{
-                justifyContent: "space-between",
-                alignItems: "flex-start",
-              }}
+              sx={{ justifyContent: "space-between", alignItems: "flex-start" }}
             >
               <Stack spacing={0.5}>
                 <Typography variant="h6" component="h2">
                   {doctorFullName}
                 </Typography>
-
                 <Typography color="text.secondary">
-                  {doctor.position}
+                  {talon.doctor.position}
                 </Typography>
               </Stack>
 
@@ -96,16 +80,16 @@ function AppointmentCard({
               <Typography variant="body2" color="text.secondary">
                 Organisation
               </Typography>
-
-              <Typography>{organisation.name}</Typography>
+              <Typography>
+                {talon.doctor.health_organisation?.name ?? "—"}
+              </Typography>
             </Stack>
 
             <Stack spacing={0.5}>
               <Typography variant="body2" color="text.secondary">
                 Cabinet
               </Typography>
-
-              <Typography>{doctor.cabinet}</Typography>
+              <Typography>{talon.doctor.cabinet}</Typography>
             </Stack>
 
             <Divider />
@@ -115,7 +99,6 @@ function AppointmentCard({
                 <Typography variant="body2" color="text.secondary">
                   Date
                 </Typography>
-
                 <Typography sx={{ fontWeight: 600 }}>{talon.date}</Typography>
               </Stack>
 
@@ -123,8 +106,7 @@ function AppointmentCard({
                 <Typography variant="body2" color="text.secondary">
                   Time
                 </Typography>
-
-                <Typography sx={{ fontWeight: 600 }}>{talon.time}</Typography>
+                <Typography sx={{ fontWeight: 600 }}>{displayTime}</Typography>
               </Stack>
             </Stack>
           </Stack>
@@ -133,17 +115,14 @@ function AppointmentCard({
 
       <Dialog open={isCancelDialogOpen} onClose={handleCloseCancelDialog}>
         <DialogTitle>Cancel appointment?</DialogTitle>
-
         <DialogContent>
           <DialogContentText>
             Are you sure you want to cancel your appointment with{" "}
-            {doctorFullName} on {talon.date} at {talon.time}?
+            {doctorFullName} on {talon.date} at {displayTime}?
           </DialogContentText>
         </DialogContent>
-
         <DialogActions>
           <Button onClick={handleCloseCancelDialog}>Keep appointment</Button>
-
           <Button
             color="error"
             variant="contained"
