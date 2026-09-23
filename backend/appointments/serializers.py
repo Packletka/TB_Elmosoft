@@ -1,10 +1,25 @@
 from health_organisations.models import HealthOrganisation
 from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
-from users.models import Doctor
+from users.models import Customer, Doctor
 
 from .models import Talons
 from .utils import validate_appointment
+
+
+class TalonCustomerSerializer(ModelSerializer):
+    last_name = serializers.CharField(source="user.last_name", read_only=True)
+    first_name = serializers.CharField(source="user.first_name", read_only=True)
+    patronymic = serializers.CharField(source="user.patronymic", read_only=True)
+
+    class Meta:
+        model = Customer
+        fields = (
+            "last_name",
+            "first_name",
+            "patronymic",
+            "phone",
+        )
 
 
 class TalonHealthOrganisationSerializer(ModelSerializer):
@@ -51,7 +66,7 @@ class TalonDoctorSerializer(ModelSerializer):
 
 
 class TalonsSerializer(ModelSerializer):
-    customer = serializers.PrimaryKeyRelatedField(read_only=True)
+    customer = TalonCustomerSerializer(read_only=True)
     doctor = TalonDoctorSerializer(read_only=True)
     doctor_id = serializers.PrimaryKeyRelatedField(
         source="doctor",

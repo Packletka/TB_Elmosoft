@@ -54,12 +54,19 @@ function DoctorPage() {
           doctorApi.getDoctor(numericId),
           appointmentApi.getAvailableTalons(numericId),
         ]);
-        return { kind: "success" as const, doctor: doctorRes.data, talons: talonsRes.data };
+        return {
+          kind: "success" as const,
+          doctor: doctorRes.data,
+          talons: talonsRes.data,
+        };
       } catch (err) {
         if (axios.isAxiosError(err) && err.response?.status === 404) {
           return { kind: "notFound" as const };
         }
-        return { kind: "error" as const, message: extractErrorMessages(err).join(" ") };
+        return {
+          kind: "error" as const,
+          message: extractErrorMessages(err).join(" "),
+        };
       }
     }
 
@@ -107,7 +114,9 @@ function DoctorPage() {
   if (loadError || !doctor) {
     return (
       <Container maxWidth="md">
-        <Alert severity="error">{loadError ?? "Something went wrong. Please try again."}</Alert>
+        <Alert severity="error">
+          {loadError ?? "Something went wrong. Please try again."}
+        </Alert>
       </Container>
     );
   }
@@ -210,7 +219,12 @@ function DoctorPage() {
                   Available times
                 </Typography>
 
-                <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  useFlexGap
+                  sx={{ flexWrap: "wrap" }}
+                >
                   {selectedDateTalons.map((talon) => (
                     <Button
                       key={talon.id}

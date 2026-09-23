@@ -23,7 +23,7 @@ class IsAdminOrRepresentativeForTalon(BasePermission):
         if not user or not user.is_authenticated:
             return False
 
-        return user.is_staff or hasattr(user, "representative")
+        return user.is_staff or hasattr(user, "representative") or hasattr(user, "doctor")
 
     def has_object_permission(self, request, view, obj):
         user = request.user
@@ -38,6 +38,9 @@ class IsAdminOrRepresentativeForTalon(BasePermission):
                 return False
 
             return obj.doctor.health_organisation_id == representative_organisation.id
+
+        if hasattr(user, "doctor"):
+            return obj.doctor_id == user.doctor.id
 
         return False
 
@@ -168,8 +171,10 @@ class TalonViewSet(ModelViewSet):
 
     @action(detail=True, methods=["post"], permission_classes=[IsAuthenticated])
     def cancel(self, request, pk=None):
-        if not hasattr(request.user, "customer"):
-            raise PermissionDenied("Only customers can cancel appointments.")
+        user = request.user
+
+        if not hasattr(user, "customer") and not hasattr(user, "doctor"):
+            raise PermissionDenied("Only the customer or the doctor can cancel this appointment.")
 
         with transaction.atomic():
             talon = get_object_or_404(
@@ -177,7 +182,14 @@ class TalonViewSet(ModelViewSet):
                 pk=pk,
             )
 
-            if talon.customer_id != request.user.customer.id:
+            if (
+                hasattr(user, "customer")
+                and talon.customer_id == user.customer.id
+                or hasattr(user, "doctor")
+                and talon.doctor_id == user.doctor.id
+            ):
+                pass
+            else:
                 raise PermissionDenied("You can cancel only your own appointments.")
 
             if self._is_past_talon(talon):
@@ -251,6 +263,9 @@ class TalonViewSet(ModelViewSet):
             ):
                 return
 
+        if hasattr(user, "doctor") and doctor.id == user.doctor.id:
+            return
+
         raise PermissionDenied(
             "You can manage appointment talons only for your organisation.",
         )
@@ -267,3 +282,11 @@ class TalonViewSet(ModelViewSet):
         current_time = timezone.localtime().time()
 
         return talon.date < today or (talon.date == today and talon.time < current_time)
+
+    def perform_destroy(self, instance):
+        if instance.customer_id is not None:
+            raise ValidationError(
+                "Cannot delete a booked appointment. Cancel it instead.",
+            )
+
+        instance.delete()

@@ -47,7 +47,10 @@ function AppointmentConfirmationPage() {
         if (axios.isAxiosError(err) && err.response?.status === 404) {
           return { kind: "notFound" as const };
         }
-        return { kind: "error" as const, message: extractErrorMessages(err).join(" ") };
+        return {
+          kind: "error" as const,
+          message: extractErrorMessages(err).join(" "),
+        };
       }
     }
 
@@ -94,7 +97,9 @@ function AppointmentConfirmationPage() {
   if (loadError || !talon) {
     return (
       <Container maxWidth="md">
-        <Alert severity="error">{loadError ?? "Something went wrong. Please try again."}</Alert>
+        <Alert severity="error">
+          {loadError ?? "Something went wrong. Please try again."}
+        </Alert>
       </Container>
     );
   }
@@ -119,9 +124,14 @@ function AppointmentConfirmationPage() {
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.status === 409) {
         setBookingError("This talon is no longer available.");
-        setTalon((current) => (current ? { ...current, is_free: false } : current));
+        setTalon((current) =>
+          current ? { ...current, is_free: false } : current,
+        );
       } else if (axios.isAxiosError(err) && err.response?.status === 400) {
-        setBookingError(err.response.data?.detail ?? "This appointment can no longer be booked.");
+        setBookingError(
+          err.response.data?.detail ??
+            "This appointment can no longer be booked.",
+        );
       } else {
         setBookingError(extractErrorMessages(err).join(" "));
       }
@@ -137,7 +147,11 @@ function AppointmentConfirmationPage() {
   const patientInitials =
     `${user.first_name.charAt(0)}${user.last_name.charAt(0)}`.toUpperCase();
 
-  const doctorFullName = [talon.doctor.last_name, talon.doctor.first_name, talon.doctor.patronymic]
+  const doctorFullName = [
+    talon.doctor.last_name,
+    talon.doctor.first_name,
+    talon.doctor.patronymic,
+  ]
     .filter(Boolean)
     .join(" ");
 
