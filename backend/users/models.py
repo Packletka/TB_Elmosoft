@@ -1,4 +1,5 @@
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.db import models
 from health_organisations.models import HealthOrganisation
@@ -32,6 +33,10 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 
     email = models.EmailField(unique=True)
 
+    home_organisation = models.ForeignKey(
+        HealthOrganisation, on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
+
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)
@@ -43,6 +48,27 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return f"{self.last_name} {self.first_name} {self.patronymic}"
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+    def clean(self):
+        super().clean()
+        if (self.is_staff or self.is_superuser) and (
+            hasattr(self, "customer") or hasattr(self, "doctor") or hasattr(self, "representative")
+        ):
+            raise ValidationError("An admin cannot also hold another role.")
+
+
+def _validate_single_role(user, own_relation_name):
+    """Raise if `user` already has a role other than `own_relation_name`."""
+    if user.is_staff or user.is_superuser:
+        raise ValidationError("This user is an admin and cannot also hold another role.")
+
+    for relation_name in ("customer", "doctor", "representative"):
+        if relation_name != own_relation_name and hasattr(user, relation_name):
+            raise ValidationError("This user already has a different role.")
 
 
 class Customer(models.Model):
@@ -59,7 +85,15 @@ class Customer(models.Model):
     address = models.CharField(max_length=150, blank=True, default="")
 
     def __str__(self):
-        return f"{self.user.last_name} {self.user.first_name}"
+        return f"{self.sex} {self.phone} {self.user.email}"
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+    def clean(self):
+        super().clean()
+        _validate_single_role(self.user, "customer")
 
 
 class Doctor(models.Model):
@@ -72,7 +106,18 @@ class Doctor(models.Model):
     slot_duration = models.IntegerField(validators=[MinValueValidator(1)])
 
     def __str__(self):
-        return f"{self.user.last_name} {self.user.first_name} ({self.position})"
+        return f"{self.position} {self.cabinet}"
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+        if self.user.home_organisation_id != self.health_organisation_id:
+            self.user.home_organisation = self.health_organisation
+            self.user.save(update_fields=["home_organisation"])
+
+    def clean(self):
+        super().clean()
+        _validate_single_role(self.user, "doctor")
 
 
 class Representative(models.Model):
@@ -80,4 +125,15 @@ class Representative(models.Model):
     health_organisation = models.ForeignKey(HealthOrganisation, on_delete=models.CASCADE, null=True, blank=True)
 
     def __str__(self):
-        return f"{self.user.last_name} {self.user.first_name}"
+        return f"Representative №{self.id}"
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+        if self.user.home_organisation_id != self.health_organisation_id:
+            self.user.home_organisation = self.health_organisation
+            self.user.save(update_fields=["home_organisation"])
+
+    def clean(self):
+        super().clean()
+        _validate_single_role(self.user, "representative")

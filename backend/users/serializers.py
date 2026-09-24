@@ -2,7 +2,9 @@ from typing import ClassVar
 
 from django.contrib.auth import get_user_model
 from django.db import transaction
+from health_organisations.models import HealthOrganisation
 from rest_framework import serializers
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.serializers import ModelSerializer, Serializer
 
 from .models import (
@@ -129,11 +131,12 @@ class CustomUserSerializer(ModelSerializer):
 
     class Meta:
         model = CustomUser
-        fields = ("id", "email", "password", "first_name", "last_name", "patronymic")
+        fields = ("id", "email", "password", "first_name", "last_name", "patronymic", "home_organisation")
         extra_kwargs: ClassVar = {
             "email": {"required": True},
             "first_name": {"required": True},
             "last_name": {"required": True},
+            "home_organisation": {"required": False, "allow_null": True},
         }
 
     # если не добавить update & create - будет ошибка 401
@@ -166,20 +169,111 @@ class CustomerSerializer(ModelSerializer):
             "phone",
             "address",
         )
+        extra_kwargs: ClassVar = {"user": {"read_only": True}}
+
+
+class DoctorHealthOrganisationSerializer(ModelSerializer):
+    class Meta:
+        model = HealthOrganisation
+        fields = (
+            "id",
+            "name",
+            "address",
+            "phone",
+            "email",
+            "site",
+        )
 
 
 class DoctorSerializer(ModelSerializer):
+    user = serializers.PrimaryKeyRelatedField(
+        queryset=CustomUser.objects.all(),
+        write_only=True,
+        required=True,
+    )
+    full_name = serializers.SerializerMethodField(read_only=True)
+    last_name = serializers.CharField(source="user.last_name", read_only=True)
+    first_name = serializers.CharField(source="user.first_name", read_only=True)
+    patronymic = serializers.CharField(source="user.patronymic", read_only=True)
+    health_organisation = DoctorHealthOrganisationSerializer(read_only=True)
+    health_organisation_id = serializers.PrimaryKeyRelatedField(
+        source="health_organisation",
+        queryset=HealthOrganisation.objects.all(),
+        write_only=True,
+        required=False,
+        allow_null=True,
+    )
+
     class Meta:
         model = Doctor
         fields = (
             "id",
             "user",
-            "health_organisation",
+            "full_name",
+            "last_name",
+            "first_name",
+            "patronymic",
             "position",
             "cabinet",
-            "work_schedule",
             "slot_duration",
+            "health_organisation",
+            "health_organisation_id",
+            "work_schedule",
         )
+
+    def get_full_name(self, obj):
+        name_parts = [
+            obj.user.last_name,
+            obj.user.first_name,
+            obj.user.patronymic,
+        ]
+
+        return " ".join(part for part in name_parts if part)
+
+    def validate_health_organisation_id(self, value):
+        request = self.context.get("request")
+        is_admin = request and (request.user.is_staff or request.user.is_superuser)
+
+        if self.instance is not None and not is_admin:
+            current_org_id = self.instance.health_organisation_id
+            new_org_id = value.id if value else None
+            if current_org_id != new_org_id:
+                raise PermissionDenied("Only an admin can reassign a doctor to a different organisation.")
+
+        return value
+
+    def validate(self, attrs):
+        request = self.context.get("request")
+        if request is None:
+            return attrs
+
+        user = request.user
+        if user.is_staff or user.is_superuser:
+            return attrs
+
+        if not hasattr(user, "representative"):
+            return attrs
+
+        rep_org = user.representative.health_organisation
+
+        if self.instance is not None:
+            if "health_organisation" in attrs and attrs["health_organisation"] != self.instance.health_organisation:
+                raise PermissionDenied("Only an admin can reassign a doctor to a different organisation.")
+        else:
+            if rep_org is None:
+                raise PermissionDenied("You must belong to an organisation to create a doctor.")
+
+            target_user = attrs.get("user")
+            if target_user is not None and target_user.home_organisation_id not in (None, rep_org.id):
+                raise PermissionDenied(
+                    "This account is earmarked for a different organisation and cannot be claimed here."
+                )
+
+            if "health_organisation" in attrs and attrs["health_organisation"] != rep_org:
+                raise PermissionDenied("You can only create doctors within your own organisation.")
+            attrs["health_organisation"] = rep_org
+
+        return attrs
 
 
 class RepresentativeSerializer(ModelSerializer):
