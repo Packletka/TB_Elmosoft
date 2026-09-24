@@ -16,7 +16,7 @@ from .models import Talons
 from .serializers import TalonsSerializer
 
 
-class IsAdminOrRepresentativeForTalon(BasePermission):
+class CanUserManageTalon(BasePermission):
     def has_permission(self, request, view):
         user = request.user
 
@@ -55,7 +55,7 @@ class TalonViewSet(ModelViewSet):
         if self.action in ("book", "cancel"):
             return [IsAuthenticated()]
 
-        return [IsAuthenticated(), IsAdminOrRepresentativeForTalon()]
+        return [IsAuthenticated(), CanUserManageTalon()]
 
     def get_queryset(self):
         queryset = Talons.objects.select_related(
@@ -133,7 +133,9 @@ class TalonViewSet(ModelViewSet):
 
     def perform_update(self, serializer):
         doctor = serializer.validated_data.get("doctor", serializer.instance.doctor)
+        customer_id = serializer.instance.customer_id
 
+        self._ensure_talon_is_free_to_edit(customer_id)
         self._ensure_user_can_manage_doctor(doctor)
 
         serializer.save()
@@ -247,6 +249,12 @@ class TalonViewSet(ModelViewSet):
             raise ValidationError({name: "Use HH:MM or HH:MM:SS format."})
 
         return parsed_value
+
+    def _ensure_talon_is_free_to_edit(self, customer_id: int | None):
+        if customer_id is None:
+            return
+
+        raise ValidationError("You cannot edit the ordered talon")
 
     def _ensure_user_can_manage_doctor(self, doctor):
         user = self.request.user
