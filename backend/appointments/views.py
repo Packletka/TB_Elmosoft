@@ -125,11 +125,15 @@ class TalonViewSet(ModelViewSet):
         return base_queryset
 
     def perform_create(self, serializer):
-        doctor = serializer.validated_data["doctor"]
+        doctor = serializer.validated_data.get("doctor")
 
-        self._ensure_user_can_manage_doctor(doctor)
-
-        serializer.save(customer=None)
+        if not doctor:
+            user = self.request.user
+            self._ensure_user_is_doctor(user)
+            serializer.save(doctor=user.doctor, customer=None)
+        else:
+            self._ensure_user_can_manage_doctor(doctor)
+            serializer.save(customer=None)
 
     def perform_update(self, serializer):
         doctor = serializer.validated_data.get("doctor", serializer.instance.doctor)
@@ -249,6 +253,10 @@ class TalonViewSet(ModelViewSet):
             raise ValidationError({name: "Use HH:MM or HH:MM:SS format."})
 
         return parsed_value
+
+    def _ensure_user_is_doctor(self, user):
+        if not hasattr(user, "doctor"):
+            raise PermissionDenied("Only doctors can create appointments.")
 
     def _ensure_talon_is_free_to_edit(self, customer_id: int | None):
         if customer_id is None:
