@@ -1,5 +1,6 @@
 from health_organisations.models import HealthOrganisation
 from rest_framework import serializers
+from rest_framework.fields import SkipField
 from rest_framework.serializers import ModelSerializer
 from users.models import Customer, Doctor
 
@@ -65,6 +66,17 @@ class TalonDoctorSerializer(ModelSerializer):
         return " ".join(part for part in name_parts if part)
 
 
+class CurrentDoctorDefault:
+    requires_context = True
+
+    def __call__(self, serializer_field):
+        user = serializer_field.context["request"].user
+        if hasattr(user, "doctor"):
+            doctor = Doctor.objects.get(user=user)
+            return doctor
+        raise SkipField()
+
+
 class TalonsSerializer(ModelSerializer):
     customer = TalonCustomerSerializer(read_only=True)
     doctor = TalonDoctorSerializer(read_only=True)
@@ -72,7 +84,8 @@ class TalonsSerializer(ModelSerializer):
         source="doctor",
         queryset=Doctor.objects.all(),
         write_only=True,
-        required=True,
+        required=False,
+        default=CurrentDoctorDefault(),
     )
     is_free = serializers.SerializerMethodField(read_only=True)
 

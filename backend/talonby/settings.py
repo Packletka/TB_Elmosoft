@@ -51,7 +51,6 @@ INSTALLED_APPS = [
     "rest_framework",
     "appointments",
     "health_organisations",
-    "testapp",
 ]
 
 MIDDLEWARE = [

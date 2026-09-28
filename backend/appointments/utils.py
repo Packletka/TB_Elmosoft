@@ -46,16 +46,19 @@ def validate_appointment(doctor, appointment_date, appointment_time, instance=No
     elif appointment_time > 1200:
         raise ValidationError("Invalid appointments closure time")
 
-    # Check 3: Effective working window (doctor and organization)
-    if appointment_time < max(organisation_opening_time, doctor_opening_time):
+    # Check 3: Adjusting working window (doctor and organization)
+    adjusted_starting_time = max(organisation_opening_time, doctor_opening_time)
+    adjusted_closing_time = min(organisation_closing_time, doctor_closing_time)
+
+    if appointment_time < adjusted_starting_time:
         raise ValidationError("Appointment time should be 'ge' doctor/health org opening time")
-    if appointment_time + doctor.slot_duration > min(organisation_closing_time, doctor_closing_time):
+    if appointment_time + doctor.slot_duration > adjusted_closing_time:
         raise ValidationError("Appointment time should be 'le' doctor/health org closing time minus slot duration")
 
     # Check 4: Slot alignment
-    minutes_since_doctor_start = appointment_time - doctor_opening_time
-    if minutes_since_doctor_start % doctor.slot_duration != 0:
-        raise ValidationError("Time must align with the doctor's schedule")
+    minutes_since_starting = appointment_time - adjusted_starting_time
+    if minutes_since_starting % doctor.slot_duration != 0:
+        raise ValidationError("Time must align with the adjusted start of the schedule")
 
     # Check 5: Overlap check
     existing_appointments = Talons.objects.filter(doctor=doctor, date=appointment_date)

@@ -127,13 +127,8 @@ class TalonViewSet(ModelViewSet):
     def perform_create(self, serializer):
         doctor = serializer.validated_data.get("doctor")
 
-        if not doctor:
-            user = self.request.user
-            self._ensure_user_is_doctor(user)
-            serializer.save(doctor=user.doctor, customer=None)
-        else:
-            self._ensure_user_can_manage_doctor(doctor)
-            serializer.save(customer=None)
+        self._ensure_user_can_manage_doctor(doctor)
+        serializer.save(customer=None)
 
     def perform_update(self, serializer):
         doctor = serializer.validated_data.get("doctor", serializer.instance.doctor)
