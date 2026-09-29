@@ -1,9 +1,16 @@
 import apiClient from "./client";
-import type { TalonResponse } from "../types/api/appointment";
+import type {
+  TalonResponse,
+  TalonCreatePayload,
+} from "../types/api/appointment";
 
 export const appointmentApi = {
-  getAppointments() {
-    return apiClient.get<TalonResponse[]>("/appointment");
+  getAppointments({ active = true }: { active?: boolean } = {}) {
+    return apiClient.get<TalonResponse[]>("/appointment", {
+      params: {
+        ...(active ? { active } : {}),
+      },
+    });
   },
 
   getAvailableTalons(doctorId: number, date?: string) {
@@ -19,6 +26,14 @@ export const appointmentApi = {
 
   getTalon(id: number) {
     return apiClient.get<TalonResponse>(`/appointment/${id}`);
+  },
+
+  createTalon(data: TalonCreatePayload) {
+    return apiClient.post<TalonResponse>("/appointment", data);
+  },
+
+  deleteTalon(id: number) {
+    return apiClient.delete<void>(`/appointment/${id}`);
   },
 
   bookTalon(id: number) {
