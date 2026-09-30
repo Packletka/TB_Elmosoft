@@ -15,7 +15,7 @@ import Typography from "@mui/material/Typography";
 import { profileApi } from "../../api/profile";
 import { extractErrorMessages } from "../../api/errorMessages";
 import { useAuth } from "../../auth/useAuth";
-import type { CustomerSex } from "../../types/customer";
+import type { CustomerSex } from "../../types/api/common";
 import type { UpdateMePayload } from "../../types/api/profile";
 
 function EditProfilePage() {

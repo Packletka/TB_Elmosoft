@@ -1,4 +1,4 @@
-import type { CustomerSex } from "../customer";
+import type { CustomerSex } from "./common";
 
 export interface CustomerResponse {
   id: number;

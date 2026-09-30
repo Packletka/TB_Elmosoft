@@ -10,8 +10,8 @@ import { getSafeReturnTo } from "../../auth/getSafeReturnTo";
 import { useAuth } from "../../auth/useAuth";
 import { authApi } from "../../api/auth";
 import { extractErrorMessages } from "../../api/errorMessages";
-import type { RegisterPayload } from "../../types/auth";
-import type { CustomerSex } from "../../types/customer";
+import type { RegisterPayload } from "../../types/api/auth";
+import type { CustomerSex } from "../../types/api/common";
 
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";

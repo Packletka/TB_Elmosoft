@@ -1,6 +1,6 @@
 import type { AxiosRequestConfig } from "axios";
 import apiClient from "./client";
-import type { RegisterPayload } from "../types/auth";
+import type { RegisterPayload } from "../types/api/auth";
 import type {
   TokenPairResponse,
   RefreshResponse,

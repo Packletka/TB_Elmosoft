@@ -1,4 +1,4 @@
-import type { CustomerSex } from "../customer";
+import type { CustomerSex } from "./common";
 import type { DoctorWorkSchedule } from "./doctor";
 
 export interface UserUpdatePayload {
