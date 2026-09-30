@@ -11,6 +11,7 @@ import DoctorsPage from "../pages/doctors/DoctorsPage";
 import AppointmentConfirmationPage from "../pages/appointments/AppointmentConfirmationPage";
 import AppointmentSuccessPage from "../pages/appointments/AppointmentSuccessPage";
 import MyAppointmentsPage from "../pages/appointments/MyAppointmentsPage";
+import DoctorTalonsPage from "../pages/appointments/DoctorTalonsPage";
 
 import ProfilePage from "../pages/profile/ProfilePage";
 import EditProfilePage from "../pages/profile/EditProfilePage";
@@ -44,6 +45,12 @@ export const router = createBrowserRouter([
           { path: "/profile", element: <ProfilePage /> },
           { path: "/profile/edit", element: <EditProfilePage /> },
           { path: "/profile/settings", element: <ProfileSettingsPage /> },
+          {
+            element: <RequireRole allowedRoles={["doctor"]} />,
+            children: [
+              { path: "/doctor/talons", element: <DoctorTalonsPage /> },
+            ],
+          },
         ],
       },
 
