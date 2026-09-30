@@ -131,17 +131,20 @@ class CustomUserSerializer(ModelSerializer):
 
     class Meta:
         model = CustomUser
-        fields = ("id", "email", "password", "first_name", "last_name", "patronymic", "home_organisation")
+        fields = ("id", "email", "password", "first_name", "last_name", "patronymic", "home_organisation", "created_by")
         extra_kwargs: ClassVar = {
             "email": {"required": True},
             "first_name": {"required": True},
             "last_name": {"required": True},
             "home_organisation": {"required": False, "allow_null": True},
+            "created_by": {"read_only": True},
         }
 
-    # если не добавить update & create - будет ошибка 401
     def create(self, validated_data):
         password = validated_data.pop("password", None)
+        request = self.context.get("request")
+        if request is not None:
+            validated_data["created_by"] = request.user
         user = CustomUser(**validated_data)
         if password:
             user.set_password(password)

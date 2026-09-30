@@ -37,6 +37,15 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         HealthOrganisation, on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
     )
 
+    created_by = models.ForeignKey(
+        "self",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="created_accounts",
+        editable=False,
+    )
+
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)
