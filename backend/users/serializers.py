@@ -140,6 +140,25 @@ class CustomUserSerializer(ModelSerializer):
             "created_by": {"read_only": True},
         }
 
+    def validate(self, attrs):
+        request = self.context.get("request")
+        if request is None or self.instance is not None:
+            return attrs
+
+        user = request.user
+        if user.is_staff or user.is_superuser or not hasattr(user, "representative"):
+            return attrs
+
+        rep_org = user.representative.health_organisation
+        if rep_org is None:
+            raise PermissionDenied("You must belong to an organisation to create accounts.")
+
+        if attrs.get("home_organisation") not in (None, rep_org):
+            raise PermissionDenied("You can only create accounts for your own organisation.")
+
+        attrs["home_organisation"] = rep_org
+        return attrs
+
     def create(self, validated_data):
         password = validated_data.pop("password", None)
         request = self.context.get("request")

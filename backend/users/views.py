@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
 from .models import Customer, CustomUser, Doctor, Representative
-from .permissions import IsAdminOrRepresentativeForDoctor
+from .permissions import CanCreateUserAccount, IsAdminOrRepresentativeForDoctor
 from .serializers import (
     CustomerSerializer,
     CustomerUpdateSerializer,
@@ -38,6 +38,8 @@ class CustomUserViewSet(
             return [AllowAny()]
         elif self.action in ["me", "update_me", "delete_me"]:
             return [IsAuthenticated()]
+        elif self.action == "create":
+            return [CanCreateUserAccount()]
         return [IsAdminUser()]
 
     @action(detail=False, methods=["POST"])
