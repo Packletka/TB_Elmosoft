@@ -19,21 +19,32 @@ import {
   getAvailableStartTimes,
   hasAvailability,
 } from "../../utils/talonAvailability";
-import type { DoctorProfile } from "../../types/api/user";
+import type { DoctorWorkSchedule } from "../../types/api/doctor";
 import type { HealthOrganisationResponse } from "../../types/api/healthOrganisation";
 import type { TalonResponse } from "../../types/api/appointment";
 
 interface CreateTalonDialogProps {
   onClose: () => void;
   onCreated: (talon: TalonResponse) => void;
-  doctorProfile: DoctorProfile;
+  /**
+   * Which doctor the talon is for. Leave it out when a doctor creates a slot
+   * for themselves (the backend fills in their own record). A representative
+   * must pass the doctor they are managing.
+   */
+  doctorId?: number;
+  workSchedule: DoctorWorkSchedule;
+  slotDuration: number;
+  healthOrganisationId: number | null;
   existingTalons: TalonResponse[];
 }
 
 function CreateTalonDialog({
   onClose,
   onCreated,
-  doctorProfile,
+  doctorId,
+  workSchedule,
+  slotDuration,
+  healthOrganisationId,
   existingTalons,
 }: CreateTalonDialogProps) {
   const [organisation, setOrganisation] =
@@ -46,14 +57,14 @@ function CreateTalonDialog({
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (doctorProfile.health_organisation_id === null) {
+    if (healthOrganisationId === null) {
       return;
     }
 
     let cancelled = false;
 
     organisationApi
-      .getOrganisation(doctorProfile.health_organisation_id)
+      .getOrganisation(healthOrganisationId)
       .then((res) => {
         if (!cancelled) setOrganisation(res.data);
       })
@@ -67,7 +78,7 @@ function CreateTalonDialog({
     return () => {
       cancelled = true;
     };
-  }, [doctorProfile.health_organisation_id]);
+  }, [healthOrganisationId]);
 
   const handleSelectTime = async (time: string) => {
     if (!selectedDate) return;
@@ -79,6 +90,7 @@ function CreateTalonDialog({
       const res = await appointmentApi.createTalon({
         date: selectedDate.format("YYYY-MM-DD"),
         time,
+        ...(doctorId !== undefined ? { doctor_id: doctorId } : {}),
       });
       onCreated(res.data);
     } catch (err) {
@@ -87,7 +99,7 @@ function CreateTalonDialog({
     }
   };
 
-  if (doctorProfile.health_organisation_id === null) {
+  if (healthOrganisationId === null) {
     return (
       <Dialog open onClose={onClose}>
         <DialogTitle>Create appointment</DialogTitle>
@@ -135,8 +147,8 @@ function CreateTalonDialog({
   }
 
   const context = {
-    workSchedule: doctorProfile.work_schedule,
-    slotDuration: doctorProfile.slot_duration,
+    workSchedule,
+    slotDuration,
     organisationSchedule: organisation.schedule,
     existingTalons,
   };

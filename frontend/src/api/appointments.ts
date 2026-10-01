@@ -5,10 +5,14 @@ import type {
 } from "../types/api/appointment";
 
 export const appointmentApi = {
-  getAppointments({ active = true }: { active?: boolean } = {}) {
+  getAppointments({
+    active = true,
+    doctorId,
+  }: { active?: boolean; doctorId?: number } = {}) {
     return apiClient.get<TalonResponse[]>("/appointment", {
       params: {
         ...(active ? { active } : {}),
+        ...(doctorId !== undefined ? { doctor: doctorId } : {}),
       },
     });
   },
