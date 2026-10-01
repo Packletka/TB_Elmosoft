@@ -174,24 +174,23 @@ class TalonViewSet(ModelViewSet):
     def cancel(self, request, pk=None):
         user = request.user
 
-        if not hasattr(user, "customer") and not hasattr(user, "doctor"):
-            raise PermissionDenied("Only the customer or the doctor can cancel this appointment.")
-
         with transaction.atomic():
             talon = get_object_or_404(
                 Talons.objects.select_for_update(),
                 pk=pk,
             )
 
-            if (
-                hasattr(user, "customer")
-                and talon.customer_id == user.customer.id
-                or hasattr(user, "doctor")
-                and talon.doctor_id == user.doctor.id
-            ):
-                pass
+            if hasattr(user, "customer"):
+                if talon.customer_id != user.customer.id:
+                    raise PermissionDenied("You can cancel only your own appointments.")
             else:
-                raise PermissionDenied("You can cancel only your own appointments.")
+                self._ensure_user_can_manage_doctor(talon.doctor)
+
+            if talon.customer_id is None:
+                return Response(
+                    {"detail": "This appointment is not booked."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
             if self._is_past_talon(talon):
                 return Response(
