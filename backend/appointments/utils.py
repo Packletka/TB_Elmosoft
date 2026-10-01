@@ -24,6 +24,8 @@ def validate_appointment(doctor, appointment_date, appointment_time, instance=No
     doctor_day_schedule = doctor_schedule.get(day_name, {})
 
     org_instance = doctor.health_organisation
+    if org_instance is None:
+        raise ValidationError("Doctor is not assigned to a health organisation")
     org_schedule = org_instance.schedule
     org_day_schedule = org_schedule.get(day_name, {})
 
