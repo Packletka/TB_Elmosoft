@@ -22,6 +22,10 @@ import RegisterPage from "../pages/auth/RegisterPage";
 
 import NotFoundPage from "../pages/NotFoundPage";
 
+import RepresentativePositionsPage from "../pages/representative/RepresentativePositionsPage";
+import RepresentativeDoctorsPage from "../pages/representative/RepresentativeDoctorsPage";
+import RepresentativeDoctorTalonsPage from "../pages/representative/RepresentativeDoctorTalonsPage";
+
 import Layout from "../components/layout/Layout";
 import RequireAuth from "../components/auth/RequireAuth";
 import RequireRole from "../components/auth/RequireRole";
@@ -36,19 +40,36 @@ export const router = createBrowserRouter([
       {
         element: <RequireAuth reason="account" />,
         children: [
+          { path: "/profile", element: <ProfilePage /> },
+          { path: "/profile/edit", element: <EditProfilePage /> },
+          { path: "/profile/settings", element: <ProfileSettingsPage /> },
           {
             element: <RequireRole allowedRoles={["customer"]} />,
             children: [
               { path: "/appointments", element: <MyAppointmentsPage /> },
             ],
           },
-          { path: "/profile", element: <ProfilePage /> },
-          { path: "/profile/edit", element: <EditProfilePage /> },
-          { path: "/profile/settings", element: <ProfileSettingsPage /> },
           {
             element: <RequireRole allowedRoles={["doctor"]} />,
             children: [
               { path: "/doctor/talons", element: <DoctorTalonsPage /> },
+            ],
+          },
+          {
+            element: <RequireRole allowedRoles={["representative"]} />,
+            children: [
+              {
+                path: "/representative/positions",
+                element: <RepresentativePositionsPage />,
+              },
+              {
+                path: "/representative/doctors",
+                element: <RepresentativeDoctorsPage />,
+              },
+              {
+                path: "/representative/doctors/:doctorId/talons",
+                element: <RepresentativeDoctorTalonsPage />,
+              },
             ],
           },
         ],

@@ -76,6 +76,15 @@ function Header() {
                 My schedule
               </Button>
             )}
+            {user?.role === "representative" && (
+              <Button
+                color="inherit"
+                component={RouterLink}
+                to="/representative/positions"
+              >
+                My organisation
+              </Button>
+            )}
 
             <Button color="inherit" component={RouterLink} to="/profile">
               Profile
