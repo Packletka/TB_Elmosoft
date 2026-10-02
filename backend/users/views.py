@@ -1,3 +1,6 @@
+from appointments.models import Talons
+from django.db.models import Q
+from django.utils import timezone
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
@@ -133,6 +136,22 @@ class DoctorViewSet(ModelViewSet):
             return queryset.filter(health_organisation=rep_org)
 
         return queryset
+
+    def perform_destroy(self, instance):
+        now = timezone.now()
+
+        has_upcoming_bookings = (
+            Talons.objects.filter(doctor=instance, customer__isnull=False)
+            .filter(Q(date__gt=now.date()) | Q(date=now.date(), time__gte=now.time()))
+            .exists()
+        )
+
+        if has_upcoming_bookings:
+            raise ValidationError(
+                "Cannot delete a doctor who has upcoming booked appointments. Cancel them first.",
+            )
+
+        instance.delete()
 
     def _get_positive_int_query_param(self, name):
         value = self.request.query_params.get(name, "")
