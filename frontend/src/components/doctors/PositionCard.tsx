@@ -8,9 +8,11 @@ import Typography from "@mui/material/Typography";
 interface PositionCardProps {
   organisationId: number;
   position: string;
+  /** Where the card links to. Defaults to the public doctors list of the organisation. */
+  to?: string;
 }
 
-function PositionCard({ organisationId, position }: PositionCardProps) {
+function PositionCard({ organisationId, position, to }: PositionCardProps) {
   const searchParams = createSearchParams({
     position: position,
   });
@@ -19,10 +21,12 @@ function PositionCard({ organisationId, position }: PositionCardProps) {
     <Card>
       <CardActionArea
         component={RouterLink}
-        to={{
-          pathname: `/organisations/${organisationId}/doctors`,
-          search: searchParams.toString(),
-        }}
+        to={
+          to ?? {
+            pathname: `/organisations/${organisationId}/doctors`,
+            search: searchParams.toString(),
+          }
+        }
       >
         <CardContent>
           <Typography variant="h6" component="h3">

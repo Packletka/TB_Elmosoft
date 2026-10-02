@@ -11,15 +11,17 @@ import type { DoctorResponse } from "../../types/api/doctor";
 
 interface DoctorCardProps {
   doctor: DoctorResponse;
+  /** Where the card links to. Defaults to the public doctor page. */
+  to?: string;
 }
 
-function DoctorCard({ doctor }: DoctorCardProps) {
+function DoctorCard({ doctor, to }: DoctorCardProps) {
   const initials =
     `${doctor.first_name.charAt(0)}${doctor.last_name.charAt(0)}`.toUpperCase();
 
   return (
     <Card>
-      <CardActionArea component={RouterLink} to={`/doctors/${doctor.id}`}>
+      <CardActionArea component={RouterLink} to={to ?? `/doctors/${doctor.id}`}>
         <CardContent>
           <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
             <Avatar>{initials}</Avatar>
