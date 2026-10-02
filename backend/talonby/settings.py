@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django_filters",
+    "corsheaders",
     "rest_framework_simplejwt",
     "rest_framework_simplejwt.token_blacklist",
     "users",
@@ -50,12 +51,12 @@ INSTALLED_APPS = [
     "rest_framework",
     "appointments",
     "health_organisations",
-    "testapp",
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     # 'whitenoise.middleware.WhiteNoiseMiddleware',
+    "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -150,8 +151,8 @@ REST_FRAMEWORK = {"DEFAULT_AUTHENTICATION_CLASSES": ("rest_framework_simplejwt.a
 
 # from official simplejwt docs
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(seconds=86400),  # how long access tokens are valid
-    "REFRESH_TOKEN_LIFETIME": timedelta(seconds=86400),  # how long refresh tokens are valid
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=10),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
     "ROTATE_REFRESH_TOKENS": False,
     "BLACKLIST_AFTER_ROTATION": False,
     "UPDATE_LAST_LOGIN": False,
@@ -189,3 +190,7 @@ SIMPLE_JWT = {
 }
 
 APPEND_SLASH = False
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+]
