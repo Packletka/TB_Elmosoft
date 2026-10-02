@@ -21,6 +21,16 @@ import { useAuth } from "../../auth/useAuth";
 import { useOrganisationPositions } from "../../hooks/useOrganisationPositions";
 import type { DoctorWorkSchedule } from "../../types/api/doctor";
 
+import DigitsField from "../../components/representative/DigitsField";
+import {
+  MAX_CABINET,
+  MAX_SLOT_MINUTES,
+  validateCabinet,
+  validatePosition,
+  validateSchedule,
+  validateSlotDuration,
+} from "../../utils/doctorForm";
+
 const DEFAULT_SCHEDULE: DoctorWorkSchedule = {
   monday: { start: "09:00", finish: "17:00" },
   tuesday: { start: "09:00", finish: "17:00" },
@@ -59,25 +69,24 @@ function AddDoctorForm({ organisationId }: { organisationId: number }) {
     event.preventDefault();
     setFormError(null);
 
-    const cabinetNumber = Number(cabinet);
-    const slotDurationNumber = Number(slotDuration);
-
     if (!accountLocked && password !== passwordRepeat) {
       setFormError("The passwords do not match.");
       return;
     }
-    if (!Number.isInteger(cabinetNumber) || cabinetNumber < 1) {
-      setFormError("Cabinet must be a whole number of at least 1.");
+
+    const validationError =
+      validatePosition(position) ??
+      validateCabinet(cabinet) ??
+      validateSlotDuration(slotDuration) ??
+      validateSchedule(workSchedule);
+
+    if (validationError) {
+      setFormError(validationError);
       return;
     }
-    if (!Number.isInteger(slotDurationNumber) || slotDurationNumber < 1) {
-      setFormError("Appointment length must be a whole number of minutes.");
-      return;
-    }
-    if (Object.keys(workSchedule).length === 0) {
-      setFormError("Choose at least one working day.");
-      return;
-    }
+
+    const cabinetNumber = Number(cabinet);
+    const slotDurationNumber = Number(slotDuration);
 
     setIsSubmitting(true);
     let accountCreated = createdUserId !== null;
@@ -217,25 +226,19 @@ function AddDoctorForm({ organisationId }: { organisationId: number }) {
                 options={positionSuggestions}
                 disabled={isSubmitting}
               />
-              <TextField
+              <DigitsField
                 label="Cabinet"
-                type="number"
                 value={cabinet}
-                onChange={(event) => setCabinet(event.target.value)}
-                required
-                fullWidth
+                onChange={setCabinet}
+                maxLength={String(MAX_CABINET).length}
                 disabled={isSubmitting}
-                slotProps={{ htmlInput: { min: 1 } }}
               />
-              <TextField
+              <DigitsField
                 label="Appointment length (minutes)"
-                type="number"
                 value={slotDuration}
-                onChange={(event) => setSlotDuration(event.target.value)}
-                required
-                fullWidth
+                onChange={setSlotDuration}
+                maxLength={String(MAX_SLOT_MINUTES).length}
                 disabled={isSubmitting}
-                slotProps={{ htmlInput: { min: 1 } }}
                 helperText="Fixed after creation."
               />
 

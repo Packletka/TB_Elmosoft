@@ -1,10 +1,17 @@
-import { useEffect, useState } from "react";
-import { Link as RouterLink, useParams } from "react-router-dom";
-import axios from "axios";
+import { useState } from "react";
+import { Link as RouterLink, useNavigate, useParams } from "react-router-dom";
 
+import DeleteIcon from "@mui/icons-material/Delete";
+import EditIcon from "@mui/icons-material/Edit";
 import Alert from "@mui/material/Alert";
+import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
 import Container from "@mui/material/Container";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogContentText from "@mui/material/DialogContentText";
+import DialogTitle from "@mui/material/DialogTitle";
 import Link from "@mui/material/Link";
 import Stack from "@mui/material/Stack";
 
@@ -14,8 +21,8 @@ import ResourceNotFound from "../../components/ui/ResourceNotFound";
 import { doctorApi } from "../../api/doctors";
 import { extractErrorMessages } from "../../api/errorMessages";
 import { useAuth } from "../../auth/useAuth";
+import { useOrganisationDoctor } from "../../hooks/useOrganisationDoctor";
 import { getPluralPosition } from "../../utils/position";
-import type { DoctorResponse } from "../../types/api/doctor";
 
 interface DoctorTalonsProps {
   doctorIdParam: string | undefined;
@@ -23,60 +30,15 @@ interface DoctorTalonsProps {
 }
 
 function DoctorTalons({ doctorIdParam, organisationId }: DoctorTalonsProps) {
-  const [doctor, setDoctor] = useState<DoctorResponse | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const { doctor, isLoading, notFound, loadError } = useOrganisationDoctor(
+    doctorIdParam,
+    organisationId,
+  );
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function load() {
-      const numericId = Number(doctorIdParam);
-
-      if (!doctorIdParam || !Number.isFinite(numericId)) {
-        return { kind: "notFound" as const };
-      }
-
-      try {
-        const res = await doctorApi.getDoctor(numericId);
-
-        // Doctors are public, so the backend returns any doctor. A doctor
-        // from another organisation must look like it doesn't exist here.
-        if (res.data.health_organisation?.id !== organisationId) {
-          return { kind: "notFound" as const };
-        }
-
-        return { kind: "success" as const, doctor: res.data };
-      } catch (err) {
-        if (axios.isAxiosError(err) && err.response?.status === 404) {
-          return { kind: "notFound" as const };
-        }
-        return {
-          kind: "error" as const,
-          message: extractErrorMessages(err).join(" "),
-        };
-      }
-    }
-
-    load().then((result) => {
-      if (cancelled) return;
-
-      if (result.kind === "success") {
-        setDoctor(result.doctor);
-      } else if (result.kind === "notFound") {
-        setNotFound(true);
-      } else {
-        setLoadError(result.message);
-      }
-
-      setIsLoading(false);
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [doctorIdParam, organisationId]);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   if (isLoading) {
     return (
@@ -113,15 +75,63 @@ function DoctorTalons({ doctorIdParam, organisationId }: DoctorTalonsProps) {
     .filter(Boolean)
     .join(" ");
 
+  const closeDeleteDialog = () => {
+    if (isDeleting) return;
+    setIsDeleteDialogOpen(false);
+    setDeleteError(null);
+  };
+
+  const handleDelete = async () => {
+    setDeleteError(null);
+    setIsDeleting(true);
+
+    try {
+      await doctorApi.deleteDoctor(doctor.id);
+      navigate("/representative/positions", { replace: true });
+    } catch (err) {
+      setDeleteError(extractErrorMessages(err).join(" "));
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <Container maxWidth="md">
       <Stack spacing={3}>
-        <Link
-          component={RouterLink}
-          to={`/representative/doctors?position=${encodeURIComponent(doctor.position)}`}
+        <Stack
+          direction="row"
+          spacing={2}
+          sx={{
+            justifyContent: "space-between",
+            alignItems: "center",
+            flexWrap: "wrap",
+          }}
         >
-          ← Back to {getPluralPosition(doctor.position)}
-        </Link>
+          <Link
+            component={RouterLink}
+            to={`/representative/doctors?position=${encodeURIComponent(doctor.position)}`}
+          >
+            ← Back to {getPluralPosition(doctor.position)}
+          </Link>
+
+          <Stack direction="row" spacing={1}>
+            <Button
+              component={RouterLink}
+              to={`/representative/doctors/${doctor.id}/edit`}
+              variant="outlined"
+              startIcon={<EditIcon />}
+            >
+              Edit doctor
+            </Button>
+            <Button
+              color="error"
+              variant="outlined"
+              startIcon={<DeleteIcon />}
+              onClick={() => setIsDeleteDialogOpen(true)}
+            >
+              Delete doctor
+            </Button>
+          </Stack>
+        </Stack>
 
         <TalonManager
           title={fullName}
@@ -131,6 +141,33 @@ function DoctorTalons({ doctorIdParam, organisationId }: DoctorTalonsProps) {
           healthOrganisationId={organisationId}
         />
       </Stack>
+
+      <Dialog open={isDeleteDialogOpen} onClose={closeDeleteDialog}>
+        <DialogTitle>Delete this doctor?</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2}>
+            <DialogContentText>
+              This permanently removes {fullName} and all of their appointment
+              slots. The login account stays. A doctor with upcoming booked
+              appointments can&apos;t be deleted until those are cancelled.
+            </DialogContentText>
+            {deleteError && <Alert severity="error">{deleteError}</Alert>}
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeDeleteDialog} disabled={isDeleting}>
+            Keep doctor
+          </Button>
+          <Button
+            color="error"
+            variant="contained"
+            onClick={handleDelete}
+            disabled={isDeleting}
+          >
+            {isDeleting ? "Deleting..." : "Delete doctor"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 }
@@ -149,9 +186,8 @@ function RepresentativeDoctorTalonsPage() {
     return <NoOrganisationNotice />;
   }
 
-  // The key remounts the page when only the URL parameter changes (browser
-  // back/forward between two doctors), so one doctor's talons never linger
-  // on screen while another doctor's load.
+  // The key remounts the page when only the URL parameter changes, so one
+  // doctor's data never lingers on screen while another doctor's loads.
   return (
     <DoctorTalons
       key={doctorId}

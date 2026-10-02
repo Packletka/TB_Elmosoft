@@ -26,6 +26,7 @@ import RepresentativeAddDoctorPage from "../pages/representative/RepresentativeA
 import RepresentativePositionsPage from "../pages/representative/RepresentativePositionsPage";
 import RepresentativeDoctorsPage from "../pages/representative/RepresentativeDoctorsPage";
 import RepresentativeDoctorTalonsPage from "../pages/representative/RepresentativeDoctorTalonsPage";
+import RepresentativeEditDoctorPage from "../pages/representative/RepresentativeEditDoctorPage";
 
 import Layout from "../components/layout/Layout";
 import RequireAuth from "../components/auth/RequireAuth";
@@ -74,6 +75,10 @@ export const router = createBrowserRouter([
               {
                 path: "/representative/doctors/:doctorId/talons",
                 element: <RepresentativeDoctorTalonsPage />,
+              },
+              {
+                path: "/representative/doctors/:doctorId/edit",
+                element: <RepresentativeEditDoctorPage />,
               },
             ],
           },
