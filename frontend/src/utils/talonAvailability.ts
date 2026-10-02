@@ -34,12 +34,12 @@ const GLOBAL_CLOSE_MINUTES = 20 * 60;
 const ZERO_LENGTH_WINDOW = { start: "00:00", finish: "00:00" };
 
 /** Accepts "HH:MM" or "HH:MM:SS" - schedules use the former, the API returns the latter. */
-function timeToMinutes(time: string): number {
+export function timeToMinutes(time: string): number {
   const [hours, minutes] = time.split(":").map(Number);
   return hours * 60 + minutes;
 }
 
-function minutesToTime(minutes: number): string {
+export function minutesToTime(minutes: number): string {
   const hours = Math.floor(minutes / 60);
   const mins = minutes % 60;
   return `${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}`;

@@ -5,6 +5,7 @@ export interface AdminUserResponse {
   last_name: string;
   patronymic: string;
   home_organisation: number | null;
+  created_by: number | null;
 }
 
 export interface AdminUserCreatePayload {

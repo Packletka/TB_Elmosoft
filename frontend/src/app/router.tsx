@@ -22,6 +22,7 @@ import RegisterPage from "../pages/auth/RegisterPage";
 
 import NotFoundPage from "../pages/NotFoundPage";
 
+import RepresentativeAddDoctorPage from "../pages/representative/RepresentativeAddDoctorPage";
 import RepresentativePositionsPage from "../pages/representative/RepresentativePositionsPage";
 import RepresentativeDoctorsPage from "../pages/representative/RepresentativeDoctorsPage";
 import RepresentativeDoctorTalonsPage from "../pages/representative/RepresentativeDoctorTalonsPage";
@@ -65,6 +66,10 @@ export const router = createBrowserRouter([
               {
                 path: "/representative/doctors",
                 element: <RepresentativeDoctorsPage />,
+              },
+              {
+                path: "/representative/doctors/new",
+                element: <RepresentativeAddDoctorPage />,
               },
               {
                 path: "/representative/doctors/:doctorId/talons",

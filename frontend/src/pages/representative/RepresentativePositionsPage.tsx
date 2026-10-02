@@ -15,6 +15,10 @@ import { useAuth } from "../../auth/useAuth.ts";
 import type { DoctorResponse } from "../../types/api/doctor.ts";
 import type { HealthOrganisationResponse } from "../../types/api/healthOrganisation.ts";
 
+import { Link as RouterLink } from "react-router-dom";
+import AddIcon from "@mui/icons-material/Add";
+import Button from "@mui/material/Button";
+
 function Positions({ organisationId }: { organisationId: number }) {
   const [organisation, setOrganisation] =
     useState<HealthOrganisationResponse | null>(null);
@@ -71,13 +75,28 @@ function Positions({ organisationId }: { organisationId: number }) {
   return (
     <Container maxWidth="md">
       <Stack spacing={3}>
-        <Stack spacing={0.5}>
-          <Typography variant="h4" component="h1">
-            {organisation.name}
-          </Typography>
-          <Typography color="text.secondary">
-            Choose a position to manage its doctors&apos; appointments.
-          </Typography>
+        <Stack
+          direction="row"
+          spacing={2}
+          sx={{ justifyContent: "space-between", alignItems: "flex-start" }}
+        >
+          <Stack spacing={0.5}>
+            <Typography variant="h4" component="h1">
+              {organisation.name}
+            </Typography>
+            <Typography color="text.secondary">
+              Choose a position to manage its doctors&apos; appointments.
+            </Typography>
+          </Stack>
+
+          <Button
+            component={RouterLink}
+            to="/representative/doctors/new"
+            variant="contained"
+            startIcon={<AddIcon />}
+          >
+            Add doctor
+          </Button>
         </Stack>
 
         {positions.length > 0 ? (
