@@ -1,11 +1,15 @@
+from appointments.models import Talons
+from django.db.models import Q
+from django.utils import timezone
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
 from .models import Customer, CustomUser, Doctor, Representative
-from .permissions import IsAdminOrRepresentativeForDoctor
+from .permissions import CanCreateUserAccount, IsAdminOrRepresentativeForDoctor
 from .serializers import (
     CustomerSerializer,
     CustomerUpdateSerializer,
@@ -33,11 +37,12 @@ class CustomUserViewSet(
     queryset = CustomUser.objects.all()
 
     def get_permissions(self):
-        print(f"DEBUG: action = {self.action}")
         if self.action == "register":
             return [AllowAny()]
         elif self.action in ["me", "update_me", "delete_me"]:
             return [IsAuthenticated()]
+        elif self.action == "create":
+            return [CanCreateUserAccount()]
         return [IsAdminUser()]
 
     @action(detail=False, methods=["POST"])
@@ -55,7 +60,6 @@ class CustomUserViewSet(
     @action(detail=False, methods=["PUT", "PATCH"])
     def update_me(self, request):
         user = request.user
-        print(f"DEBUG: User={user.email}, has_customer={hasattr(user, 'customer')}")
 
         if hasattr(user, "customer"):
             serializer_class = CustomerUpdateSerializer
@@ -66,27 +70,13 @@ class CustomUserViewSet(
         else:
             serializer_class = UserUpdateSerializer
 
-        print(f"DEBUG: serializer_class={serializer_class.__name__}")
-
-        print(f"DEBUG: class has update() = {hasattr(serializer_class, 'update')}")
-
         serializer = serializer_class(
             instance=user, data=request.data, partial=request.method == "PATCH", context={"request": request}
         )
 
-        print(f"DEBUG: instance has update() = {hasattr(serializer, 'update')}")
-        print(f"DEBUG: instance type = {type(serializer)}")
-
-        if hasattr(serializer, "update"):
-            print(f"DEBUG: update method = {serializer.update}")
-        else:
-            print("DEBUG: update method is MISSING on instance!")
-
         serializer.is_valid(raise_exception=True)
-        print(f"DEBUG: valid data = {serializer.validated_data}")
 
-        result = serializer.save()
-        print(f"DEBUG: save result = {result}")
+        serializer.save()
 
         return Response(serializer.data)
 
@@ -108,18 +98,76 @@ class CustomerViewSet(
 
 class DoctorViewSet(ModelViewSet):
     serializer_class = DoctorSerializer
-    permission_classes = (IsAdminOrRepresentativeForDoctor,)
+
+    def get_permissions(self):
+        if self.action in ("list", "retrieve"):
+            return [AllowAny()]
+
+        return [IsAdminOrRepresentativeForDoctor()]
 
     def get_queryset(self):
-        user = self.request.user
-        queryset = Doctor.objects.all()
+        queryset = Doctor.objects.select_related(
+            "user",
+            "health_organisation",
+        ).order_by("id")
 
-        # If representative -> filter to their organization
+        if self.action == "list":
+            health_organisation_id = self._get_positive_int_query_param(
+                "health_organisation",
+            )
+
+            if health_organisation_id is not None:
+                queryset = queryset.filter(
+                    health_organisation_id=health_organisation_id,
+                )
+
+            return queryset
+
+        if self.action == "retrieve":
+            return queryset
+
+        user = self.request.user
+
+        # If representative -> manage only doctors from their organization
         if user.is_authenticated and hasattr(user, "representative"):
             rep_org = user.representative.health_organisation
-            queryset = queryset.filter(health_organisation=rep_org)
+            if rep_org is None:
+                return queryset.none()
+            return queryset.filter(health_organisation=rep_org)
 
         return queryset
+
+    def perform_destroy(self, instance):
+        now = timezone.now()
+
+        has_upcoming_bookings = (
+            Talons.objects.filter(doctor=instance, customer__isnull=False)
+            .filter(Q(date__gt=now.date()) | Q(date=now.date(), time__gte=now.time()))
+            .exists()
+        )
+
+        if has_upcoming_bookings:
+            raise ValidationError(
+                "Cannot delete a doctor who has upcoming booked appointments. Cancel them first.",
+            )
+
+        instance.delete()
+
+    def _get_positive_int_query_param(self, name):
+        value = self.request.query_params.get(name, "")
+
+        if not value:
+            return None
+
+        try:
+            parsed_value = int(value)
+        except ValueError as exc:
+            raise ValidationError({name: "Must be a valid integer."}) from exc
+
+        if parsed_value <= 0:
+            raise ValidationError({name: "Must be a positive integer."})
+
+        return parsed_value
 
 
 class RepresentativeViewSet(ModelViewSet):

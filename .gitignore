@@ -22,3 +22,6 @@ dist/
 build/
 *.egg-info/
 .eggs/
+
+# frontend env
+/frontend/.env

@@ -16,5 +16,16 @@ class IsAdminOrRepresentativeForDoctor(BasePermission):
         if hasattr(request.user, "representative"):
             # True if representative is from exact correct organisation
             rep_org = request.user.representative.health_organisation
+            if rep_org is None:
+                return False
             return obj.health_organisation == rep_org
         return False
+
+
+class CanCreateUserAccount(BasePermission):
+    """Admins and representatives may create accounts. Creation has no object yet, so no per-object rules."""
+
+    def has_permission(self, request, view):
+        user = request.user
+
+        return bool(user and user.is_authenticated and (user.is_staff or hasattr(user, "representative")))
