@@ -36,12 +36,13 @@ The database lives in a Docker volume on each machine, so a fresh clone starts e
 
 Every account is a `CustomUser` that logs in by email. An account holds at most one role profile, and an admin holds none.
 
-| Role           | Created by                              | Can do                                                                       |
-| -------------- | --------------------------------------- | ---------------------------------------------------------------------------- |
-| Customer       | themselves, on the Register page        | Book free talons, view and cancel their own bookings                         |
-| Doctor         | an admin or a representative            | Manage their own talons and see who booked them                              |
-| Representative | an admin                                | Manage the doctors and talons of their own organisation, and create accounts |
-| Admin          | the shell (`is_staff` / `is_superuser`) | Everything, including organisations and representatives                      |
+| Role             | Created by                              | Can do                                                                                               |
+| ---------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Customer         | themselves, on the Register page        | Book free talons, view and cancel their own bookings                                                 |
+| Doctor           | an admin or a representative            | Manage their own talons and see who booked them                                                      |
+| Representative   | an admin                                | Manage the doctors and talons of their own organisation, and create accounts                         |
+| `/customer/{id}` | admin                                   | Retrieve, update and delete only. There is no list or create, because customers register themselves. |
+| Admin            | the shell (`is_staff` / `is_superuser`) | Everything, including organisations and representatives                                              |
 
 A doctor or representative without an organisation can't manage anything.
 

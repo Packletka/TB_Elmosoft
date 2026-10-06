@@ -1,8 +1,6 @@
 .venv
-backend/.env.django
-backend/.env.db
-backend/.env.redis
-backend/.env.local
+backend/.env.*
+!backend/.env.example
 .idea/
 static/
 node_modules/
