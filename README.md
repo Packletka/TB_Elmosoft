@@ -12,15 +12,17 @@ You need Docker and Node.js with npm.
 1. **Environment files** (not in git). Split `backend/.env.example` into three files in `backend/`:
    - `.env.django`: the `DEBUG` and `DJANGO_*` lines, with a secret key filled in
    - `.env.db`: the `POSTGRES_*` lines, with a password filled in
-   - `.env.redis`: the `REDIS_*` lines
+   - `.env.redis`: the `REDIS_*` lines, with a password filled in
 
-   Then create `frontend/.env`:
+   Next, copy `.env.example` in the project root to `.env` and set `REDIS_PASSWORD` to the **same value** as in `backend/.env.redis`. Docker Compose reads this root file to start Redis with a password, while the Django container gets the password from `backend/.env.redis`. If the two values differ, Django can't authenticate to Redis.
+
+   Finally, create `frontend/.env` (or copy `frontend/.env.example`):
 
    ```
    VITE_API_URL=http://127.0.0.1:8000/api/v1
    ```
 
-2. **Backend:** `docker compose up --build`. Migrations run on start, and the API is served at http://127.0.0.1:8000/api/v1.
+2. **Backend:** `docker compose up --build`. Migrations run on start, and the API is served at http://127.0.0.1:8000/api/v1. The API and Postgres are published on `127.0.0.1` only, so other devices on your network can't reach them. Redis isn't published at all and is reachable only from other containers. To inspect it, run `docker compose exec redis redis-cli` and log in with the `AUTH` command.
 3. **Admin account.** The start script runs `createsuperuser --noinput`, but that fails silently because first and last names are required. Create the admin from the shell instead:
 
    ```bash
@@ -146,4 +148,3 @@ Before committing frontend changes, run `npx tsc -b && npm run lint` in `fronten
 - **Deleting a customer account** deletes the talons they booked instead of freeing them.
 - **The doctor-delete guard can be bypassed** by deleting the doctor's account, either by an admin or by the doctor through `delete_me`. The profile and its talons go with it.
 - **No password change or reset** yet.
-- **Compose warns that `REDIS_PASSWORD` is not set.** It reads `${REDIS_PASSWORD}` from the shell or a root `.env`, not from `backend/.env.redis`. Redis isn't used by the app yet.

@@ -1,6 +1,7 @@
 .venv
 backend/.env.*
 !backend/.env.example
+.env
 .idea/
 static/
 node_modules/
@@ -23,3 +24,7 @@ build/
 
 # frontend env
 /frontend/.env
+
+# cowork
+.claude
+CLAUDE.md
