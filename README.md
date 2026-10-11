@@ -22,7 +22,7 @@ You need Docker and Node.js with npm.
    VITE_API_URL=http://127.0.0.1:8000/api/v1
    ```
 
-2. **Backend:** `docker compose up --build`. Migrations run on start, and the API is served at http://127.0.0.1:8000/api/v1. The API and Postgres are published on `127.0.0.1` only, so other devices on your network can't reach them. Redis isn't published at all and is reachable only from other containers. To inspect it, run `docker compose exec redis redis-cli` and log in with the `AUTH` command.
+2. **Backend:** `docker compose up --build`. Migrations run on start, and the API is served at http://127.0.0.1:8000/api/v1. The API and Postgres are published on `127.0.0.1` only, so other devices on your network can't reach them. Redis isn't published at all and is reachable only from other containers. To inspect it, run `docker compose exec redis redis-cli` and log in with the `AUTH` command. The `celery-worker` container runs background tasks such as sending emails. It doesn't reload on code changes, so after editing a task run `docker compose restart celery-worker`, and read its output with `docker compose logs -f celery-worker`.
 3. **Admin account.** The start script runs `createsuperuser --noinput`, but that fails silently because first and last names are required. Create the admin from the shell instead:
 
    ```bash

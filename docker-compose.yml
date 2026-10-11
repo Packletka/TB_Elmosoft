@@ -23,6 +23,22 @@ services:
       - backend/.env.redis
       - backend/.env.db
 
+  celery-worker:
+    build: .
+    # replaces the image's default CMD (migrate + runserver); the worker must not run those
+    command: celery -A talonby worker --loglevel=INFO --concurrency=2
+    # `talonby` is importable (and .env.local is found) only from the Django project directory
+    working_dir: /app/backend
+    depends_on:
+      - redis
+      - db
+    volumes:
+      - ./backend:/app/backend
+    env_file:
+      - backend/.env.django
+      - backend/.env.redis
+      - backend/.env.db
+
 #  taken from habr
   redis:
     image: redis:latest

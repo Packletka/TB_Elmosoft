@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 import os
 from datetime import timedelta
 from pathlib import Path
+from urllib.parse import quote
 
 from dotenv import load_dotenv
 
@@ -191,3 +192,12 @@ APPEND_SLASH = False
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
 ]
+
+CELERY_BROKER_URL = "redis://{password}{host}:{port}/0".format(
+    password=f":{quote(os.environ['REDIS_PASSWORD'], safe='')}@" if os.environ["REDIS_PASSWORD"] else "",
+    host=os.environ["REDIS_HOST"],
+    port=os.environ["REDIS_PORT"],
+)
+
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+CELERY_TASK_IGNORE_RESULT = True
