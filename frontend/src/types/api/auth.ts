@@ -23,3 +23,14 @@ export interface RegisterPayload {
 }
 
 export type RegisterResponse = Extract<MeResponse, { role: "customer" }>;
+
+export interface PasswordResetPayload {
+  uid: string;
+  token: string;
+  new_password: string;
+}
+
+// Both password recovery endpoints answer with a single sentence.
+export interface DetailResponse {
+  detail: string;
+}

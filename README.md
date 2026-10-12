@@ -142,6 +142,8 @@ frontend/src/
 
 The public booking flow is organisations, then positions, then doctors, then a doctor's calendar, then confirmation. Customers manage bookings at `/appointments`, doctors at `/doctor/talons`, and representatives under `/representative/...`.
 
+Password recovery uses two public pages, `/forgot-password` and `/reset-password`. The link in the email opens the second one with `uid` and `token` in the address, and the page removes them from the address bar as soon as it has read them. `FRONTEND_URL` in `backend/.env.email` decides where those links point.
+
 Before committing frontend changes, run `npx tsc -b && npm run lint` in `frontend/`. The backend has automated tests for password recovery (`docker compose exec django-web python /app/backend/manage.py test users`). Everything else has been checked by hand with Postman and the browser.
 
 ## Known issues

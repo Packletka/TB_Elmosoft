@@ -2,6 +2,8 @@ import type { AxiosRequestConfig } from "axios";
 import apiClient from "./client";
 import type { RegisterPayload } from "../types/api/auth";
 import type {
+  DetailResponse,
+  PasswordResetPayload,
   TokenPairResponse,
   RefreshResponse,
   RegisterResponse,
@@ -34,5 +36,15 @@ export const authApi = {
 
   register(data: RegisterPayload) {
     return apiClient.post<RegisterResponse>("/user/register", data);
+  },
+
+  // Public endpoints: the backend ignores any token sent along, so a stale
+  // one left in localStorage cannot turn these calls into a 401.
+  requestPasswordReset(email: string) {
+    return apiClient.post<DetailResponse>("/password/forgot", { email });
+  },
+
+  resetPassword(data: PasswordResetPayload) {
+    return apiClient.post<DetailResponse>("/password/reset", data);
   },
 };

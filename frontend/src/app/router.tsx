@@ -17,8 +17,10 @@ import ProfilePage from "../pages/profile/ProfilePage";
 import EditProfilePage from "../pages/profile/EditProfilePage";
 import ProfileSettingsPage from "../pages/profile/ProfileSettingsPage";
 
+import ForgotPasswordPage from "../pages/auth/ForgotPasswordPage";
 import LoginPage from "../pages/auth/LoginPage";
 import RegisterPage from "../pages/auth/RegisterPage";
+import ResetPasswordPage from "../pages/auth/ResetPasswordPage";
 
 import NotFoundPage from "../pages/NotFoundPage";
 
@@ -111,6 +113,12 @@ export const router = createBrowserRouter([
           { path: "/login", element: <LoginPage /> },
         ],
       },
+
+      // Not behind RedirectIfAuthenticated on purpose: a signed-in user can
+      // still need these. The "password changed" email links to the first,
+      // and a reset link opens in whatever browser the mail app picks.
+      { path: "/forgot-password", element: <ForgotPasswordPage /> },
+      { path: "/reset-password", element: <ResetPasswordPage /> },
 
       { path: "/organisations", element: <OrganisationsPage /> },
       { path: "/organisations/:organisationId", element: <OrganisationPage /> },

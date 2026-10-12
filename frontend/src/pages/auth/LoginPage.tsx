@@ -117,6 +117,16 @@ function LoginPage() {
                 disabled={isSubmitting}
               />
 
+              <Typography variant="body2" sx={{ textAlign: "right" }}>
+                <Link
+                  component={RouterLink}
+                  to="/forgot-password"
+                  underline="hover"
+                >
+                  Forgot your password?
+                </Link>
+              </Typography>
+
               <Button
                 type="submit"
                 variant="contained"
