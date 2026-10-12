@@ -1,3 +1,4 @@
+from collections.abc import Mapping
 from typing import ClassVar
 
 from django.contrib.auth import get_user_model
@@ -334,28 +335,32 @@ class RepresentativeProfileSerializer(ModelSerializer):
         extra_kwargs: ClassVar = {"health_organisation": {"required": False, "allow_null": True}}
 
 
+# These need flows of their own (the emailed reset, later a change confirmed with the current password)
+# They are refused loudly: DRF would silently ignore them and answer 200, so a client would think it worked
+FIELDS_WITH_THEIR_OWN_FLOW = {
+    "email": "The email address can't be changed here.",
+    "password": "The password can't be changed here.",
+}
+
+
 class UserUpdateSerializer(Serializer):
-    email = serializers.EmailField(required=False)
     first_name = serializers.CharField(required=False)
     last_name = serializers.CharField(required=False)
     patronymic = serializers.CharField(required=False, allow_blank=True)
-    password = serializers.CharField(write_only=True, required=False)
 
-    def validate_email(self, value):
-        user = self.context["request"].user
-        if CustomUser.objects.exclude(pk=user.pk).filter(email=value).exists():
-            raise serializers.ValidationError("A user with this email already exists.")
-        return value
+    def to_internal_value(self, data):
+        # Anything that is not a dict gets the usual "expected a dictionary" error from super()
+        if isinstance(data, Mapping):
+            refused = {name: [message] for name, message in FIELDS_WITH_THEIR_OWN_FLOW.items() if name in data}
+            if refused:
+                raise serializers.ValidationError(refused)
+        return super().to_internal_value(data)
 
     @transaction.atomic
     def update(self, instance, validated_data):
-        instance.email = validated_data.get("email", instance.email)
         instance.first_name = validated_data.get("first_name", instance.first_name)
         instance.last_name = validated_data.get("last_name", instance.last_name)
         instance.patronymic = validated_data.get("patronymic", instance.patronymic)
-
-        if "password" in validated_data:
-            instance.set_password(validated_data["password"])
 
         instance.save()
         return instance

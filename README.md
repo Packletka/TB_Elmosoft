@@ -114,7 +114,7 @@ Base URL: `/api/v1`. Send the token as `Authorization: Bearer <access>`. Router 
 | `POST /token/`, `/token/refresh/`, `/token/blacklist/`            | anyone                                     | Log in, refresh, log out. The access token lasts 10 minutes and the refresh token 7 days. The frontend refreshes automatically, Postman doesn't. |
 | `POST /password/forgot`, `POST /password/reset`                   | anyone                                     | Reset by email. `forgot` takes `{email}` and always answers 202. `reset` takes `{uid, token, new_password}`; the link works once, 15 minutes.    |
 | `POST /user/register`                                             | anyone                                     | Creates a customer                                                                                                                               |
-| `GET /user/me`, `PATCH /user/update_me`, `DELETE /user/delete_me` | logged in                                  | Your own account. The `/me` response depends on your role.                                                                                       |
+| `GET /user/me`, `PATCH /user/update_me`, `DELETE /user/delete_me` | logged in                                  | Your own account. `update_me` refuses `email` and `password` with a 400. The `/me` response depends on your role.                                |
 | `/user`                                                           | admin                                      | Create is also allowed for representatives                                                                                                       |
 | `/health-organisation`                                            | read: anyone; write: admin                 |                                                                                                                                                  |
 | `/doctor`                                                         | read: anyone; write: admin, representative | Filter with `?health_organisation=<id>`                                                                                                          |
@@ -149,4 +149,5 @@ Before committing frontend changes, run `npx tsc -b && npm run lint` in `fronten
 - **Clock mismatch.** The server runs on UTC, but talon times are local clock times (Minsk is UTC+3), so "now" checks on the backend are off by 3 hours. The frontend uses the browser's clock.
 - **Deleting a customer account** deletes the talons they booked instead of freeing them.
 - **The doctor-delete guard can be bypassed** by deleting the doctor's account, either by an admin or by the doctor through `delete_me`. The profile and its talons go with it.
-- **No password change while logged in** yet. Resetting a forgotten password by email works.
+- **No password or email change while logged in** yet. `PATCH /user/update_me` refuses both with a 400. A forgotten password can be reset by email.
+- **Phone numbers** can still be changed directly through `PATCH /user/update_me` (the UI has no form for it). A change confirmed by an emailed code is planned.
