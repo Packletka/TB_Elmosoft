@@ -9,10 +9,11 @@ TalonBy is a web app for booking medical appointments. Health organisations publ
 
 You need Docker and Node.js with npm.
 
-1. **Environment files** (not in git). Split `backend/.env.example` into three files in `backend/`:
+1. **Environment files** (not in git). Split `backend/.env.example` into these files in `backend/`:
    - `.env.django`: the `DEBUG` and `DJANGO_*` lines, with a secret key filled in
    - `.env.db`: the `POSTGRES_*` lines, with a password filled in
    - `.env.redis`: the `REDIS_*` lines, with a password filled in
+   - `.env.email` (optional): the `EMAIL_*` lines and `DEFAULT_FROM_EMAIL`. Without this file, emails are printed to the worker log instead of being sent. For real delivery set `EMAIL_BACKEND` to the SMTP backend and use a Gmail App Password, pasted without spaces
 
    Next, copy `.env.example` in the project root to `.env` and set `REDIS_PASSWORD` to the **same value** as in `backend/.env.redis`. Docker Compose reads this root file to start Redis with a password, while the Django container gets the password from `backend/.env.redis`. If the two values differ, Django can't authenticate to Redis.
 

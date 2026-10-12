@@ -38,6 +38,9 @@ services:
       - backend/.env.django
       - backend/.env.redis
       - backend/.env.db
+      # SMTP credentials are needed only by the worker; without this file emails go to the worker log
+      - path: backend/.env.email
+        required: false
 
 #  taken from habr
   redis:
