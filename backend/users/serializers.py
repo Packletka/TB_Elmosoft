@@ -1,7 +1,12 @@
 from typing import ClassVar
 
 from django.contrib.auth import get_user_model
+from django.contrib.auth.password_validation import validate_password
+from django.contrib.auth.tokens import default_token_generator
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
+from django.utils.encoding import force_str
+from django.utils.http import urlsafe_base64_decode
 from health_organisations.models import HealthOrganisation
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
@@ -429,3 +434,34 @@ class RepresentativeUpdateSerializer(UserUpdateSerializer):
         serializer.save()
 
         return instance
+
+
+class PasswordForgotSerializer(Serializer):
+    email = serializers.EmailField()
+
+
+class PasswordResetSerializer(Serializer):
+    uid = serializers.CharField()
+    token = serializers.CharField()
+    # Kept exactly as typed (no trimming), the same as at login. max_length keeps hashing cheap.
+    new_password = serializers.CharField(write_only=True, trim_whitespace=False, max_length=128)
+
+    def validate(self, attrs):
+        user = self._get_user(attrs["uid"])
+        # One message for a bad uid, a wrong token and an expired one, so the answer tells an attacker nothing.
+        if user is None or not default_token_generator.check_token(user, attrs["token"]):
+            raise serializers.ValidationError({"token": "This link is invalid or has expired. Request a new one."})
+        # Only after the token is proven: the password rules are not an oracle for strangers.
+        try:
+            validate_password(attrs["new_password"], user)
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError({"new_password": list(exc.messages)}) from exc
+        attrs["user"] = user
+        return attrs
+
+    @staticmethod
+    def _get_user(uid):
+        try:
+            return CustomUser.objects.get(pk=force_str(urlsafe_base64_decode(uid)), is_active=True)
+        except (TypeError, ValueError, OverflowError, CustomUser.DoesNotExist):
+            return None

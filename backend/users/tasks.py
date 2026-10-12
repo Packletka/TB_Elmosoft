@@ -1,8 +1,13 @@
 import smtplib
+from urllib.parse import urlencode
 
 from celery import shared_task
 from celery.utils.log import get_task_logger
 from django.conf import settings
+from django.contrib.auth import get_user_model
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.encoding import force_bytes
+from django.utils.http import urlsafe_base64_encode
 
 from .emails import send_templated_email
 
@@ -29,10 +34,59 @@ EMAIL_TASK_OPTIONS = {
     "max_retries": 5,  # then give up; all retries together fit well inside the 15-minute token lifetime
 }
 
-PREVIEW_SUBJECTS = {
+EMAIL_SUBJECTS = {
     "password_reset": "Reset your TalonBy password",
     "password_changed": "Your TalonBy password was changed",
 }
+
+
+def _get_active_user(user_id):
+    """Look the user up again inside the task: the account may have been deleted or disabled since the request."""
+    user = get_user_model().objects.filter(pk=user_id, is_active=True).first()
+    if user is None:
+        logger.warning("No active user %s, no email sent", user_id)
+    return user
+
+
+@shared_task(**EMAIL_TASK_OPTIONS)
+def send_password_reset_email(user_id):
+    """Email a one-time link for choosing a new password.
+
+    Only the user id travels through Redis. The token is made here, so the secret never sits in the queue, and a
+    retry makes a fresh one. The token is signed with SECRET_KEY, so the web and worker containers must share it.
+    """
+    user = _get_active_user(user_id)
+    if user is None:
+        return
+    query = urlencode(
+        {
+            "uid": urlsafe_base64_encode(force_bytes(user.pk)),
+            "token": default_token_generator.make_token(user),
+        }
+    )
+    context = {
+        "first_name": user.first_name,
+        "action_url": f"{settings.FRONTEND_URL}/reset-password?{query}",
+        "valid_minutes": settings.PASSWORD_RESET_TIMEOUT // 60,
+    }
+    send_templated_email(user.email, EMAIL_SUBJECTS["password_reset"], "password_reset", context)
+    # Log the id only: the address is personal data and the link is a secret.
+    logger.info("Password reset email for user %s handed to the email backend", user_id)
+
+
+@shared_task(**EMAIL_TASK_OPTIONS)
+def send_password_changed_email(user_id):
+    """Tell the owner that the password was changed, so they notice if it was not them."""
+    user = _get_active_user(user_id)
+    if user is None:
+        return
+    send_templated_email(
+        user.email,
+        EMAIL_SUBJECTS["password_changed"],
+        "password_changed",
+        {"first_name": user.first_name},
+    )
+    logger.info("Password changed email for user %s handed to the email backend", user_id)
 
 
 @shared_task(**EMAIL_TASK_OPTIONS)
@@ -43,5 +97,5 @@ def send_test_email(to_email, kind="password_reset"):
         "action_url": f"{settings.FRONTEND_URL}/reset-password?uid=preview&token=preview-token",
         "valid_minutes": 15,
     }
-    sent = send_templated_email(to_email, PREVIEW_SUBJECTS[kind], kind, context)
+    sent = send_templated_email(to_email, EMAIL_SUBJECTS[kind], kind, context)
     logger.info("%s preview: %s message(s) handed to the email backend", kind, sent)

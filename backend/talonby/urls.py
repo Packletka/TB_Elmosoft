@@ -12,6 +12,8 @@ from users.views import (
     CustomerViewSet,
     CustomUserViewSet,
     DoctorViewSet,
+    PasswordForgotView,
+    PasswordResetView,
     RepresentativeViewSet,
 )
 
@@ -33,5 +35,7 @@ urlpatterns = [
     path("api/v1/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("api/v1/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("api/v1/token/blacklist/", TokenBlacklistView.as_view(), name="token_blacklist"),
+    path("api/v1/password/forgot", PasswordForgotView.as_view(), name="password_forgot"),
+    path("api/v1/password/reset", PasswordResetView.as_view(), name="password_reset"),
     path("api/v1/", include(router.urls)),
 ]

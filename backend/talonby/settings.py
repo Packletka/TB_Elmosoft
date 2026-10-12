@@ -140,20 +140,31 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 # https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
 
 # Only the Celery worker sends email. Unless the environment sets EMAIL_BACKEND, emails are printed to the
-# worker's log instead of being delivered.
+# worker's log instead of being delivered
 EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend")
 EMAIL_HOST = os.getenv("EMAIL_HOST", "smtp.gmail.com")
 EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587"))
 EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "True").lower() in ("1", "true", "yes")
 EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
-# Without a timeout, a stuck SMTP connection would block a worker process forever.
+# Without a timeout, a stuck SMTP connection would block a worker process forever
 EMAIL_TIMEOUT = int(os.getenv("EMAIL_TIMEOUT", "10"))
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL") or EMAIL_HOST_USER or "TalonBy <noreply@talonby.local>"
-# Where the links in emails point; the React dev server by default.
+# Where the links in emails point; the React dev server by default
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173").rstrip("/")
 
-REST_FRAMEWORK = {"DEFAULT_AUTHENTICATION_CLASSES": ("rest_framework_simplejwt.authentication.JWTAuthentication",)}
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": ("rest_framework_simplejwt.authentication.JWTAuthentication",),
+    # Limits per client address, used by views that set `throttle_scope` (the password endpoints).
+    "DEFAULT_THROTTLE_RATES": {
+        "password_forgot": "20/hour",
+        "password_reset": "30/hour",
+    },
+    "NUM_PROXIES": 0,
+}
+
+# How long a password reset link works, in seconds
+PASSWORD_RESET_TIMEOUT = 15 * 60
 
 # from official simplejwt docs
 SIMPLE_JWT = {
@@ -209,3 +220,11 @@ CELERY_BROKER_URL = "redis://{password}{host}:{port}/0".format(
 
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 CELERY_TASK_IGNORE_RESULT = True
+
+# A cache shared by all web processes: the same Redis server, database 1 (the Celery broker uses database 0).
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": CELERY_BROKER_URL.removesuffix("/0") + "/1",
+    }
+}

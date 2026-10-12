@@ -1,4 +1,6 @@
 from appointments.models import Talons
+from django.core.cache import cache
+from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
 from rest_framework import mixins, status, viewsets
@@ -6,9 +8,12 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
+from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 
 from .models import Customer, CustomUser, Doctor, Representative
+from .passwords import set_password_and_end_sessions
 from .permissions import CanCreateUserAccount, IsAdminOrRepresentativeForDoctor
 from .serializers import (
     CustomerSerializer,
@@ -17,11 +22,14 @@ from .serializers import (
     DoctorSerializer,
     DoctorUpdateSerializer,
     MeSerializer,
+    PasswordForgotSerializer,
+    PasswordResetSerializer,
     RegisterSerializer,
     RepresentativeSerializer,
     RepresentativeUpdateSerializer,
     UserUpdateSerializer,
 )
+from .tasks import send_password_changed_email, send_password_reset_email
 
 
 class CustomUserViewSet(
@@ -175,3 +183,53 @@ class RepresentativeViewSet(ModelViewSet):
     queryset = Representative.objects.all()
 
     permission_classes = (IsAdminUser,)
+
+
+# One reset email per account per minute, whoever asks. Together with the per-address throttle this stops anyone
+# from filling somebody's inbox with reset emails.
+PASSWORD_RESET_EMAIL_COOLDOWN = 60
+
+
+class PasswordForgotView(APIView):
+    """Start a password reset: email a link to the account with this address, if there is one."""
+
+    # No authentication on purpose: an expired access token left in the browser must not turn this public page
+    # into a 401.
+    authentication_classes = ()
+    permission_classes = (AllowAny,)
+    throttle_classes = (ScopedRateThrottle,)
+    throttle_scope = "password_forgot"
+
+    def post(self, request):
+        serializer = PasswordForgotSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user = CustomUser.objects.filter(email__iexact=serializer.validated_data["email"], is_active=True).first()
+        # cache.add stores the key only if it is missing, in one atomic step, so two quick requests send one email.
+        if user is not None and cache.add(f"password-reset-cooldown:{user.pk}", 1, PASSWORD_RESET_EMAIL_COOLDOWN):
+            send_password_reset_email.delay(user.pk)
+
+        # The same answer whether or not the account exists, so this page cannot be used to find out who has one.
+        return Response(
+            {"detail": "If an account with this email exists, we have sent instructions to it."},
+            status=status.HTTP_202_ACCEPTED,
+        )
+
+
+class PasswordResetView(APIView):
+    """Finish a password reset with the uid and token from the emailed link."""
+
+    authentication_classes = ()
+    permission_classes = (AllowAny,)
+    throttle_classes = (ScopedRateThrottle,)
+    throttle_scope = "password_reset"
+
+    def post(self, request):
+        serializer = PasswordResetSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user = serializer.validated_data["user"]
+        set_password_and_end_sessions(user, serializer.validated_data["new_password"])
+        # on_commit: the worker must never run before the new password is really saved.
+        transaction.on_commit(lambda: send_password_changed_email.delay(user.pk))
+        return Response({"detail": "Password changed. Sign in with your new password."})
