@@ -10,7 +10,8 @@ def send_templated_email(to_email, subject, template, context):
     context = {
         "site_name": SITE_NAME,
         "frontend_url": settings.FRONTEND_URL,
-        "forgot_password_url": f"{settings.FRONTEND_URL}/forgot-password",
+        # The page behind this link (ForgotPasswordPage) reads `from` to change its wording, nothing else
+        "secure_account_url": f"{settings.FRONTEND_URL}/forgot-password?from=password-changed",
         **context,
     }
     text_body = render_to_string(f"emails/{template}.txt", context).strip()

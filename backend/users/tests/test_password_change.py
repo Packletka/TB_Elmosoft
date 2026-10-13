@@ -1,5 +1,6 @@
 from unittest import mock
 
+from django.conf import settings
 from django.core import mail
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -103,3 +104,11 @@ class PasswordChangeTests(EagerCeleryTestCase):
             codes = [self.change(current="not-my-password-1").status_code for _ in range(3)]
 
         self.assertEqual(codes, [400, 400, 429])
+
+    def test_the_notice_leads_to_the_secure_account_page(self):
+        self.change()
+
+        link = f"{settings.FRONTEND_URL}/forgot-password?from=password-changed"
+        message = mail.outbox[0]
+        self.assertIn(link, message.body)
+        self.assertIn(link, message.alternatives[0].content)

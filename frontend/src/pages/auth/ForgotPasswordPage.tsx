@@ -1,7 +1,7 @@
 import axios from "axios";
 import type { FormEvent } from "react";
 import { useState } from "react";
-import { Link as RouterLink } from "react-router-dom";
+import { Link as RouterLink, useSearchParams } from "react-router-dom";
 
 import { authApi } from "../../api/auth";
 import { extractErrorMessages } from "../../api/errorMessages";
@@ -16,7 +16,27 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 
+// The "password was changed" email links here with ?from=password-changed (secure_account_url in
+// backend/users/emails.py). Same form, same request, only the words differ: that visitor may have lost the account
+const COPY = {
+  forgot: {
+    title: "Forgot your password?",
+    intro:
+      "Enter the email address of your account and we will send you a link to choose a new password.",
+    footer: "Remembered it?",
+  },
+  secure: {
+    title: "Secure your account",
+    intro:
+      "The password of your account was changed. If that was not you, enter the email address of your account. We will send you a link to choose a new password, and choosing one signs out every device, including any that is not yours.",
+    footer: "Changed it yourself?",
+  },
+};
+
 function ForgotPasswordPage() {
+  const [searchParams] = useSearchParams();
+  const copy =
+    searchParams.get("from") === "password-changed" ? COPY.secure : COPY.forgot;
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   // The address we asked the server about. Not null means the request went
@@ -95,12 +115,9 @@ function ForgotPasswordPage() {
         <Stack spacing={3}>
           <Box>
             <Typography variant="h4" component="h1" gutterBottom>
-              Forgot your password?
+              {copy.title}
             </Typography>
-            <Typography color="text.secondary">
-              Enter the email address of your account and we will send you a
-              link to choose a new password.
-            </Typography>
+            <Typography color="text.secondary">{copy.intro}</Typography>
           </Box>
 
           {formError && <Alert severity="error">{formError}</Alert>}
@@ -130,7 +147,7 @@ function ForgotPasswordPage() {
           </Box>
 
           <Typography variant="body2" sx={{ textAlign: "center" }}>
-            Remembered it?{" "}
+            {copy.footer}{" "}
             <Link component={RouterLink} to="/login" underline="hover">
               Sign in
             </Link>
