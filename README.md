@@ -124,6 +124,8 @@ Base URL: `/api/v1`. Send the token as `Authorization: Bearer <access>`. Router 
 | `POST /appointment/{id}/book`                                     | customer                                   | Free, future talons only                                                                                                                         |
 | `POST /appointment/{id}/cancel`                                   | see "Booking rules"                        |                                                                                                                                                  |
 
+A password change, by reset link or while signed in, ends every session at once. Refresh tokens are blacklisted, and every token carries a fingerprint of the password it was issued under (`CHECK_REVOKE_TOKEN` in `SIMPLE_JWT`), so access tokens stop working immediately instead of after their 10 minutes. Tokens issued before that setting was switched on have no fingerprint and are refused too.
+
 `GET /appointment` returns different talons depending on who asks: anonymous visitors get free ones, customers get their own plus free ones, doctors get their own, representatives get their organisation's, and admins get all. Filters: `doctor=<id>`, `date=YYYY-MM-DD`, `time=HH:MM` (that time onwards), `free=true|false`, `active=true|false` (future or past). Creating a talon needs `doctor_id`, except for a doctor creating their own.
 
 Writes use `*_id` fields (`doctor_id`, `health_organisation_id`), while reads return nested objects under the plain name. DRF silently ignores unknown or misspelled fields, so if a change "doesn't save", check the field name first.
