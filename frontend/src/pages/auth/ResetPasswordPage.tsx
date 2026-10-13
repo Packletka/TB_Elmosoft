@@ -8,14 +8,19 @@ import {
 } from "react-router-dom";
 
 import { authApi } from "../../api/auth";
-import { extractErrorMessages } from "../../api/errorMessages";
+import {
+  extractErrorMessages,
+  getThrottleMessage,
+} from "../../api/errorMessages";
 import { useAuth } from "../../auth/useAuth";
+import ExitLink from "../../components/auth/ExitLink";
+import PasswordRequirements from "../../components/auth/PasswordRequirements";
+import ErrorAlert from "../../components/ui/ErrorAlert";
 
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Container from "@mui/material/Container";
-import Link from "@mui/material/Link";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
@@ -51,7 +56,7 @@ function ResetPasswordPage() {
 
   const [isLinkRejected, setIsLinkRejected] = useState(false);
   const [isDone, setIsDone] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
+  const [errors, setErrors] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -64,14 +69,14 @@ function ResetPasswordPage() {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setFormError(null);
+    setErrors([]);
 
     const formData = new FormData(event.currentTarget);
     const newPassword = String(formData.get("newPassword") ?? "");
     const confirmPassword = String(formData.get("confirmPassword") ?? "");
 
     if (newPassword !== confirmPassword) {
-      setFormError("Passwords do not match.");
+      setErrors(["Passwords do not match."]);
       return;
     }
 
@@ -85,10 +90,9 @@ function ResetPasswordPage() {
     } catch (err) {
       if (isRejectedLink(err)) {
         setIsLinkRejected(true);
-      } else if (axios.isAxiosError(err) && err.response?.status === 429) {
-        setFormError("Too many attempts. Please try again later.");
       } else {
-        setFormError(extractErrorMessages(err).join(" "));
+        const throttled = getThrottleMessage(err);
+        setErrors(throttled ? [throttled] : extractErrorMessages(err));
       }
       setIsSubmitting(false);
       return;
@@ -149,19 +153,15 @@ function ResetPasswordPage() {
               asked for several, use the newest email.
             </Typography>
 
-            <Stack direction="row" spacing={2}>
-              <Button
-                variant="contained"
-                component={RouterLink}
-                to="/forgot-password"
-                fullWidth
-              >
-                Request a new link
-              </Button>
-              <Button variant="outlined" component={RouterLink} to="/login">
-                Sign in
-              </Button>
-            </Stack>
+            <Button
+              variant="contained"
+              size="large"
+              component={RouterLink}
+              to="/forgot-password"
+              fullWidth
+            >
+              Request a new link
+            </Button>
           </Stack>
         </Paper>
       </Container>
@@ -181,16 +181,17 @@ function ResetPasswordPage() {
             </Typography>
           </Box>
 
-          {formError && <Alert severity="error">{formError}</Alert>}
+          <ErrorAlert messages={errors} />
 
           <Box component="form" onSubmit={handleSubmit}>
             <Stack spacing={2}>
+              <PasswordRequirements />
+
               <TextField
                 label="New password"
                 name="newPassword"
                 type="password"
                 autoComplete="new-password"
-                helperText="Not too short, not a common password, not only digits."
                 required
                 fullWidth
                 disabled={isSubmitting}
@@ -218,11 +219,7 @@ function ResetPasswordPage() {
             </Stack>
           </Box>
 
-          <Typography variant="body2" sx={{ textAlign: "center" }}>
-            <Link component={RouterLink} to="/login" underline="hover">
-              Back to sign in
-            </Link>
-          </Typography>
+          <ExitLink label="Back to sign in" />
         </Stack>
       </Paper>
     </Container>

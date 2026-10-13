@@ -112,3 +112,15 @@ class PasswordChangeTests(EagerCeleryTestCase):
         message = mail.outbox[0]
         self.assertIn(link, message.body)
         self.assertIn(link, message.alternatives[0].content)
+
+    def test_the_frontend_can_read_how_long_to_wait(self):
+        origin = settings.CORS_ALLOWED_ORIGINS[0]
+        body = {"current_password": "not-my-password-1", "new_password": NEW_PASSWORD}
+
+        with mock.patch.dict(ScopedRateThrottle.THROTTLE_RATES, {"password_change": "1/hour"}):
+            self.client.post(CHANGE_URL, body, format="json", HTTP_ORIGIN=origin)
+            throttled = self.client.post(CHANGE_URL, body, format="json", HTTP_ORIGIN=origin)
+
+        self.assertEqual(throttled.status_code, 429)
+        self.assertGreater(int(throttled["Retry-After"]), 0)
+        self.assertIn("Retry-After", throttled["Access-Control-Expose-Headers"])

@@ -1,10 +1,12 @@
-import axios from "axios";
 import type { FormEvent } from "react";
 import { useState } from "react";
 import { Link as RouterLink } from "react-router-dom";
 
 import { authApi } from "../../api/auth";
-import { extractErrorMessages } from "../../api/errorMessages";
+import {
+  extractErrorMessages,
+  getThrottleMessage,
+} from "../../api/errorMessages";
 import { setTokens } from "../../auth/tokenStorage";
 import PasswordRequirements from "../../components/auth/PasswordRequirements";
 import ErrorAlert from "../../components/ui/ErrorAlert";
@@ -48,11 +50,8 @@ function ChangePasswordPage() {
       setTokens(res.data.access, res.data.refresh);
       setIsDone(true);
     } catch (err) {
-      if (axios.isAxiosError(err) && err.response?.status === 429) {
-        setErrors(["Too many attempts. Please try again later."]);
-      } else {
-        setErrors(extractErrorMessages(err));
-      }
+      const throttled = getThrottleMessage(err);
+      setErrors(throttled ? [throttled] : extractErrorMessages(err));
     } finally {
       setIsSubmitting(false);
     }

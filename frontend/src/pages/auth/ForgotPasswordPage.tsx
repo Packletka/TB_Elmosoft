@@ -1,16 +1,19 @@
-import axios from "axios";
 import type { FormEvent } from "react";
 import { useState } from "react";
-import { Link as RouterLink, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 
 import { authApi } from "../../api/auth";
-import { extractErrorMessages } from "../../api/errorMessages";
+import {
+  extractErrorMessages,
+  getThrottleMessage,
+} from "../../api/errorMessages";
+import ExitLink from "../../components/auth/ExitLink";
+import ErrorAlert from "../../components/ui/ErrorAlert";
 
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Container from "@mui/material/Container";
-import Link from "@mui/material/Link";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
@@ -37,37 +40,35 @@ function ForgotPasswordPage() {
   const [searchParams] = useSearchParams();
   const copy =
     searchParams.get("from") === "password-changed" ? COPY.secure : COPY.forgot;
-  const [formError, setFormError] = useState<string | null>(null);
+  const [errors, setErrors] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  // The address we asked the server about. Not null means the request went
-  // through and the page switches from the form to the "check your email" view.
-  const [requestedFor, setRequestedFor] = useState<string | null>(null);
+  // The address the request went out for. It stays after the "check your email" view is closed, so the form comes
+  // back with it filled in
+  const [email, setEmail] = useState("");
+  // True means the request went through and the page shows "check your email" instead of the form
+  const [isSent, setIsSent] = useState(false);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setFormError(null);
+    setErrors([]);
 
     const formData = new FormData(event.currentTarget);
-    const email = String(formData.get("email") ?? "").trim();
+    const submitted = String(formData.get("email") ?? "").trim();
 
     setIsSubmitting(true);
     try {
-      await authApi.requestPasswordReset(email);
-      setRequestedFor(email);
+      await authApi.requestPasswordReset(submitted);
+      setEmail(submitted);
+      setIsSent(true);
     } catch (err) {
-      if (axios.isAxiosError(err) && err.response?.status === 429) {
-        // The server answers with a technical sentence ("Expected available
-        // in 3412 seconds"); a plain one is friendlier.
-        setFormError("Too many requests. Please try again later.");
-      } else {
-        setFormError(extractErrorMessages(err).join(" "));
-      }
+      const throttled = getThrottleMessage(err);
+      setErrors(throttled ? [throttled] : extractErrorMessages(err));
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  if (requestedFor !== null) {
+  if (isSent) {
     return (
       <Container maxWidth="sm">
         <Paper elevation={3} sx={{ p: 4, mt: 4 }}>
@@ -80,8 +81,8 @@ function ForgotPasswordPage() {
                 whether or not the address belongs to an account, and so
                 must this page. */}
             <Alert severity="success">
-              If an account with <strong>{requestedFor}</strong> exists, we have
-              sent instructions to it.
+              If an account with <strong>{email}</strong> exists, we have sent
+              instructions to it.
             </Alert>
 
             <Typography color="text.secondary">
@@ -90,18 +91,15 @@ function ForgotPasswordPage() {
               again.
             </Typography>
 
-            <Stack direction="row" spacing={2}>
+            <Stack spacing={2}>
               <Button
-                variant="contained"
-                component={RouterLink}
-                to="/login"
+                variant="outlined"
+                onClick={() => setIsSent(false)}
                 fullWidth
               >
-                Back to sign in
+                Use a different email
               </Button>
-              <Button variant="outlined" onClick={() => setRequestedFor(null)}>
-                Try again
-              </Button>
+              <ExitLink label="Back to sign in" />
             </Stack>
           </Stack>
         </Paper>
@@ -120,7 +118,7 @@ function ForgotPasswordPage() {
             <Typography color="text.secondary">{copy.intro}</Typography>
           </Box>
 
-          {formError && <Alert severity="error">{formError}</Alert>}
+          <ErrorAlert messages={errors} />
 
           <Box component="form" onSubmit={handleSubmit}>
             <Stack spacing={2}>
@@ -129,6 +127,7 @@ function ForgotPasswordPage() {
                 name="email"
                 type="email"
                 autoComplete="email"
+                defaultValue={email}
                 required
                 fullWidth
                 disabled={isSubmitting}
@@ -146,12 +145,7 @@ function ForgotPasswordPage() {
             </Stack>
           </Box>
 
-          <Typography variant="body2" sx={{ textAlign: "center" }}>
-            {copy.footer}{" "}
-            <Link component={RouterLink} to="/login" underline="hover">
-              Sign in
-            </Link>
-          </Typography>
+          <ExitLink lead={copy.footer} label="Sign in" />
         </Stack>
       </Paper>
     </Container>

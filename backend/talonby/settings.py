@@ -214,6 +214,10 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
 ]
 
+# A browser hides most response headers from the page unless the server lists them here. The frontend reads
+# Retry-After on a 429 to tell the user how long to wait
+CORS_EXPOSE_HEADERS = ["Retry-After"]
+
 CELERY_BROKER_URL = "redis://{password}{host}:{port}/0".format(
     password=f":{quote(os.environ['REDIS_PASSWORD'], safe='')}@" if os.environ["REDIS_PASSWORD"] else "",
     host=os.environ["REDIS_HOST"],
