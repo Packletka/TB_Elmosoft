@@ -3,17 +3,15 @@ from unittest import mock
 from urllib.parse import parse_qs, urlparse
 
 from django.core import mail
-from django.core.cache import cache
 from django.test import override_settings
 from django.utils.encoding import force_str
 from django.utils.http import urlsafe_base64_decode
-from rest_framework.test import APITestCase
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework_simplejwt.tokens import RefreshToken
-from talonby import celery_app
 
 from ..models import CustomUser
 from ..tasks import send_password_reset_email
+from .support import EagerCeleryTestCase
 
 FORGOT_URL = "/api/v1/password/forgot"
 RESET_URL = "/api/v1/password/reset"
@@ -23,24 +21,10 @@ REFRESH_URL = "/api/v1/token/refresh/"
 OLD_PASSWORD = "old-Secret-pass-1"
 NEW_PASSWORD = "brand-New-pass-2"
 
-# Throttle counters and the reset cooldown live in the cache; tests use a private in-memory one instead of Redis.
-IN_MEMORY_CACHE = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
 
-
-@override_settings(CACHES=IN_MEMORY_CACHE)
-class PasswordRecoveryTests(APITestCase):
+class PasswordRecoveryTests(EagerCeleryTestCase):
     def setUp(self):
-        # Run Celery tasks right inside the test, as if .delay() were a plain call, instead of queueing them in Redis.
-        eager = (celery_app.conf.task_always_eager, celery_app.conf.task_eager_propagates)
-
-        def restore_celery_settings():
-            celery_app.conf.task_always_eager, celery_app.conf.task_eager_propagates = eager
-
-        self.addCleanup(restore_celery_settings)
-        celery_app.conf.task_always_eager = True
-        celery_app.conf.task_eager_propagates = True
-        cache.clear()
-
+        super().setUp()
         self.user = CustomUser.objects.create_user(
             email="anna@example.com", password=OLD_PASSWORD, first_name="Anna", last_name="Ivanova"
         )
@@ -208,6 +192,16 @@ class PasswordRecoveryTests(APITestCase):
         self.assertEqual(weak.status_code, 400)
         self.assertIn("new_password", weak.json())
         self.assertEqual(self.login(OLD_PASSWORD).status_code, 200)
+        self.assertEqual(self.reset(params).status_code, 200)
+
+    def test_the_current_password_is_refused_and_the_link_stays_usable(self):
+        params = self.request_link()
+
+        same = self.reset(params, password=OLD_PASSWORD)
+
+        self.assertEqual(same.status_code, 400)
+        self.assertIn("new_password", same.json())
+        self.assertEqual([m.subject for m in mail.outbox], ["Reset your TalonBy password"])  # no "changed" notice
         self.assertEqual(self.reset(params).status_code, 200)
 
     def test_reset_signs_the_user_out_everywhere(self):

@@ -2,7 +2,6 @@ from collections.abc import Mapping
 from typing import ClassVar
 
 from django.contrib.auth import get_user_model
-from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.tokens import default_token_generator
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
@@ -18,6 +17,7 @@ from .models import (
     Doctor,
     Representative,
 )
+from .passwords import validate_new_password
 
 CustomUser = get_user_model()
 
@@ -339,7 +339,7 @@ class RepresentativeProfileSerializer(ModelSerializer):
 # They are refused loudly: DRF would silently ignore them and answer 200, so a client would think it worked
 FIELDS_WITH_THEIR_OWN_FLOW = {
     "email": "The email address can't be changed here.",
-    "password": "The password can't be changed here.",
+    "password": "The password can't be changed here. Use POST /password/change.",
 }
 
 
@@ -458,7 +458,7 @@ class PasswordResetSerializer(Serializer):
             raise serializers.ValidationError({"token": "This link is invalid or has expired. Request a new one."})
         # Only after the token is proven: the password rules are not an oracle for strangers.
         try:
-            validate_password(attrs["new_password"], user)
+            validate_new_password(user, attrs["new_password"])
         except DjangoValidationError as exc:
             raise serializers.ValidationError({"new_password": list(exc.messages)}) from exc
         attrs["user"] = user
@@ -470,3 +470,22 @@ class PasswordResetSerializer(Serializer):
             return CustomUser.objects.get(pk=force_str(urlsafe_base64_decode(uid)), is_active=True)
         except (TypeError, ValueError, OverflowError, CustomUser.DoesNotExist):
             return None
+
+
+class PasswordChangeSerializer(Serializer):
+    current_password = serializers.CharField(write_only=True, trim_whitespace=False, max_length=128)
+    new_password = serializers.CharField(write_only=True, trim_whitespace=False, max_length=128)
+
+    def validate_current_password(self, value):
+        if not self.context["request"].user.check_password(value):
+            raise serializers.ValidationError("The current password is incorrect.")
+        return value
+
+    def validate(self, attrs):
+        # DRF skips validate() when a field already failed, so the rules for the new password are shown only
+        # after the current password is right
+        try:
+            validate_new_password(self.context["request"].user, attrs["new_password"])
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError({"new_password": list(exc.messages)}) from exc
+        return attrs

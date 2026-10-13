@@ -2,6 +2,9 @@ import EmailIcon from "@mui/icons-material/Email";
 import LockIcon from "@mui/icons-material/Lock";
 import PhoneIcon from "@mui/icons-material/Phone";
 
+import { Link as RouterLink } from "react-router-dom";
+
+import Button from "@mui/material/Button";
 import Container from "@mui/material/Container";
 import Divider from "@mui/material/Divider";
 import Paper from "@mui/material/Paper";
@@ -64,12 +67,19 @@ function ProfileSettingsPage() {
                 <Typography variant="h6">Password</Typography>
                 <Typography color="text.secondary">••••••••</Typography>
               </Stack>
+              <Button
+                variant="outlined"
+                component={RouterLink}
+                to="/profile/settings/password"
+              >
+                Change password
+              </Button>
             </Stack>
           </Stack>
         </Paper>
 
         <Typography variant="body2" color="text.secondary">
-          Changing your email, phone number, or password isn't available yet.
+          Changing your email or phone number isn't available yet.
         </Typography>
       </Stack>
     </Container>

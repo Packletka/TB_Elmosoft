@@ -113,6 +113,7 @@ Base URL: `/api/v1`. Send the token as `Authorization: Bearer <access>`. Router 
 | ----------------------------------------------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `POST /token/`, `/token/refresh/`, `/token/blacklist/`            | anyone                                     | Log in, refresh, log out. The access token lasts 10 minutes and the refresh token 7 days. The frontend refreshes automatically, Postman doesn't. |
 | `POST /password/forgot`, `POST /password/reset`                   | anyone                                     | Reset by email. `forgot` takes `{email}` and always answers 202. `reset` takes `{uid, token, new_password}`; the link works once, 15 minutes.    |
+| `POST /password/change`                                           | logged in                                  | Needs `{current_password, new_password}`. Ends every other session and returns a fresh token pair. 10 per hour.                                  |
 | `POST /user/register`                                             | anyone                                     | Creates a customer                                                                                                                               |
 | `GET /user/me`, `PATCH /user/update_me`, `DELETE /user/delete_me` | logged in                                  | Your own account. `update_me` refuses `email` and `password` with a 400. The `/me` response depends on your role.                                |
 | `/user`                                                           | admin                                      | Create is also allowed for representatives                                                                                                       |
@@ -142,14 +143,14 @@ frontend/src/
 
 The public booking flow is organisations, then positions, then doctors, then a doctor's calendar, then confirmation. Customers manage bookings at `/appointments`, doctors at `/doctor/talons`, and representatives under `/representative/...`.
 
-Password recovery uses two public pages, `/forgot-password` and `/reset-password`. The link in the email opens the second one with `uid` and `token` in the address, and the page removes them from the address bar as soon as it has read them. `FRONTEND_URL` in `backend/.env.email` decides where those links point.
+Password recovery uses two public pages, `/forgot-password` and `/reset-password`. The link in the email opens the second one with `uid` and `token` in the address, and the page removes them from the address bar as soon as it has read them. `FRONTEND_URL` in `backend/.env.email` decides where those links point. A signed-in user changes the password at `/profile/settings/password`; that page keeps them signed in on the current device.
 
-Before committing frontend changes, run `npx tsc -b && npm run lint` in `frontend/`. The backend has automated tests for password recovery (`docker compose exec django-web python /app/backend/manage.py test users`). Everything else has been checked by hand with Postman and the browser.
+Before committing frontend changes, run `npx tsc -b && npm run lint` in `frontend/`. The backend has automated tests for password recovery and change (`docker compose exec django-web python /app/backend/manage.py test users`). Everything else has been checked by hand with Postman and the browser.
 
 ## Known issues
 
 - **Clock mismatch.** The server runs on UTC, but talon times are local clock times (Minsk is UTC+3), so "now" checks on the backend are off by 3 hours. The frontend uses the browser's clock.
 - **Deleting a customer account** deletes the talons they booked instead of freeing them.
 - **The doctor-delete guard can be bypassed** by deleting the doctor's account, either by an admin or by the doctor through `delete_me`. The profile and its talons go with it.
-- **No password or email change while logged in** yet. `PATCH /user/update_me` refuses both with a 400. A forgotten password can be reset by email.
+- **No email change while logged in** yet. `PATCH /user/update_me` refuses it with a 400. The password can be changed at `/profile/settings/password` or reset by email.
 - **Phone numbers** can still be changed directly through `PATCH /user/update_me` (the UI has no form for it). A change confirmed by an emailed code is planned.

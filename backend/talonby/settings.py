@@ -159,6 +159,7 @@ REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_RATES": {
         "password_forgot": "20/hour",
         "password_reset": "30/hour",
+        "password_change": "10/hour",
     },
     "NUM_PROXIES": 0,
 }

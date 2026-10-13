@@ -34,3 +34,11 @@ export interface PasswordResetPayload {
 export interface DetailResponse {
   detail: string;
 }
+
+export interface PasswordChangePayload {
+  current_password: string;
+  new_password: string;
+}
+
+// A fresh token pair comes with the answer: the change ends every session, this device's included
+export type PasswordChangeResponse = DetailResponse & TokenPairResponse;

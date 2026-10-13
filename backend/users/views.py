@@ -11,6 +11,7 @@ from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import Customer, CustomUser, Doctor, Representative
 from .passwords import set_password_and_end_sessions
@@ -22,6 +23,7 @@ from .serializers import (
     DoctorSerializer,
     DoctorUpdateSerializer,
     MeSerializer,
+    PasswordChangeSerializer,
     PasswordForgotSerializer,
     PasswordResetSerializer,
     RegisterSerializer,
@@ -233,3 +235,24 @@ class PasswordResetView(APIView):
         # on_commit: the worker must never run before the new password is really saved.
         transaction.on_commit(lambda: send_password_changed_email.delay(user.pk))
         return Response({"detail": "Password changed. Sign in with your new password."})
+
+
+class PasswordChangeView(APIView):
+    """Change the password of the signed-in user. Needs the current password, so a stolen session is not enough."""
+
+    permission_classes = (IsAuthenticated,)
+    # Counted per account: someone holding a stolen access token must not be able to guess the current password
+    throttle_classes = (ScopedRateThrottle,)
+    throttle_scope = "password_change"
+
+    def post(self, request):
+        serializer = PasswordChangeSerializer(data=request.data, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+
+        user = request.user
+        set_password_and_end_sessions(user, serializer.validated_data["new_password"])
+        transaction.on_commit(lambda: send_password_changed_email.delay(user.pk))
+
+        # Every session is over, this device's included. It gets a new one, so the user stays signed in here.
+        refresh = RefreshToken.for_user(user)
+        return Response({"detail": "Password changed.", "access": str(refresh.access_token), "refresh": str(refresh)})

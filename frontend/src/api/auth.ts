@@ -3,6 +3,8 @@ import apiClient from "./client";
 import type { RegisterPayload } from "../types/api/auth";
 import type {
   DetailResponse,
+  PasswordChangePayload,
+  PasswordChangeResponse,
   PasswordResetPayload,
   TokenPairResponse,
   RefreshResponse,
@@ -42,6 +44,10 @@ export const authApi = {
   // one left in localStorage cannot turn these calls into a 401.
   requestPasswordReset(email: string) {
     return apiClient.post<DetailResponse>("/password/forgot", { email });
+  },
+
+  changePassword(data: PasswordChangePayload) {
+    return apiClient.post<PasswordChangeResponse>("/password/change", data);
   },
 
   resetPassword(data: PasswordResetPayload) {
