@@ -160,6 +160,8 @@ REST_FRAMEWORK = {
         "password_forgot": "20/hour",
         "password_reset": "30/hour",
         "password_change": "10/hour",
+        "phone_change_request": "10/hour",
+        "phone_change_confirm": "30/hour",
     },
     "NUM_PROXIES": 0,
 }

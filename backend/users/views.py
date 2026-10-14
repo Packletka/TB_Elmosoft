@@ -5,7 +5,7 @@ from django.db.models import Q
 from django.utils import timezone
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import Throttled, ValidationError
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
@@ -13,9 +13,10 @@ from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from . import phone_change
 from .models import Customer, CustomUser, Doctor, Representative
 from .passwords import set_password_and_end_sessions
-from .permissions import CanCreateUserAccount, IsAdminOrRepresentativeForDoctor
+from .permissions import CanCreateUserAccount, IsAdminOrRepresentativeForDoctor, IsCustomer
 from .serializers import (
     CustomerSerializer,
     CustomerUpdateSerializer,
@@ -26,12 +27,14 @@ from .serializers import (
     PasswordChangeSerializer,
     PasswordForgotSerializer,
     PasswordResetSerializer,
+    PhoneChangeConfirmSerializer,
+    PhoneChangeRequestSerializer,
     RegisterSerializer,
     RepresentativeSerializer,
     RepresentativeUpdateSerializer,
     UserUpdateSerializer,
 )
-from .tasks import send_password_changed_email, send_password_reset_email
+from .tasks import send_password_changed_email, send_password_reset_email, send_phone_change_code_email
 
 
 class CustomUserViewSet(
@@ -256,3 +259,47 @@ class PasswordChangeView(APIView):
         # Every session is over, this device's included. It gets a new one, so the user stays signed in here.
         refresh = RefreshToken.for_user(user)
         return Response({"detail": "Password changed.", "access": str(refresh.access_token), "refresh": str(refresh)})
+
+
+class PhoneChangeRequestView(APIView):
+    """Start changing the phone number: email a confirmation code to the address of the account."""
+
+    permission_classes = (IsAuthenticated, IsCustomer)
+    throttle_classes = (ScopedRateThrottle,)
+    throttle_scope = "phone_change_request"
+
+    def post(self, request):
+        serializer = PhoneChangeRequestSerializer(data=request.data, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+
+        # Claimed only once the number is accepted, so a typo does not cost a minute of waiting
+        if not phone_change.claim_request_slot(request.user.pk):
+            raise Throttled(wait=phone_change.REQUEST_COOLDOWN)
+
+        phone_change.start(request.user.pk, str(serializer.validated_data["phone"]))
+        send_phone_change_code_email.delay(request.user.pk)
+        return Response(
+            {"detail": "We have emailed a confirmation code to your address."}, status=status.HTTP_202_ACCEPTED
+        )
+
+
+class PhoneChangeConfirmView(APIView):
+    """Finish changing the phone number with the code from the email."""
+
+    permission_classes = (IsAuthenticated, IsCustomer)
+    throttle_classes = (ScopedRateThrottle,)
+    throttle_scope = "phone_change_confirm"
+
+    def post(self, request):
+        serializer = PhoneChangeConfirmSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            phone = phone_change.confirm(request.user.pk, serializer.validated_data["code"])
+        except phone_change.CodeRejected as exc:
+            raise ValidationError({"code": [str(exc)]}) from exc
+
+        customer = request.user.customer
+        customer.phone = phone
+        customer.save(update_fields=["phone"])
+        return Response({"detail": "Phone number changed.", "phone": str(customer.phone)})

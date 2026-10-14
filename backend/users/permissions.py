@@ -29,3 +29,12 @@ class CanCreateUserAccount(BasePermission):
         user = request.user
 
         return bool(user and user.is_authenticated and (user.is_staff or hasattr(user, "representative")))
+
+
+class IsCustomer(BasePermission):
+    """Signed-in users that have a customer profile."""
+
+    def has_permission(self, request, view):
+        user = request.user
+
+        return bool(user and user.is_authenticated and hasattr(user, "customer"))

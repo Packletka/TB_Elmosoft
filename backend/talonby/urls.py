@@ -15,6 +15,8 @@ from users.views import (
     PasswordChangeView,
     PasswordForgotView,
     PasswordResetView,
+    PhoneChangeConfirmView,
+    PhoneChangeRequestView,
     RepresentativeViewSet,
 )
 
@@ -39,5 +41,7 @@ urlpatterns = [
     path("api/v1/password/change", PasswordChangeView.as_view(), name="password_change"),
     path("api/v1/password/forgot", PasswordForgotView.as_view(), name="password_forgot"),
     path("api/v1/password/reset", PasswordResetView.as_view(), name="password_reset"),
+    path("api/v1/phone/change/request", PhoneChangeRequestView.as_view(), name="phone_change_request"),
+    path("api/v1/phone/change/confirm", PhoneChangeConfirmView.as_view(), name="phone_change_confirm"),
     path("api/v1/", include(router.urls)),
 ]

@@ -1,38 +1,12 @@
-from datetime import date
-
 from rest_framework.test import APITestCase
 
-from ..models import Customer, CustomUser, Doctor, Representative
+from ..models import CustomUser
+from .support import PASSWORD, make_customer, make_doctor, make_plain_user, make_representative
 
 LOGIN_URL = "/api/v1/token/"
 UPDATE_ME_URL = "/api/v1/user/update_me"
 
-PASSWORD = "old-Secret-pass-1"
 NEW_PASSWORD = "brand-New-pass-2"
-
-
-def make_plain_user(email):
-    return CustomUser.objects.create_user(email=email, password=PASSWORD, first_name="Anna", last_name="Ivanova")
-
-
-def make_customer(email):
-    user = make_plain_user(email)
-    Customer.objects.create(user=user, sex="F", birthday=date(1990, 1, 1), phone="+375291234567")
-    return user
-
-
-def make_doctor(email):
-    user = make_plain_user(email)
-    Doctor.objects.create(
-        user=user, position="Therapist", cabinet=1, work_schedule={"monday": [["09:00", "17:00"]]}, slot_duration=15
-    )
-    return user
-
-
-def make_representative(email):
-    user = make_plain_user(email)
-    Representative.objects.create(user=user)
-    return user
 
 
 class UpdateMeTests(APITestCase):
@@ -118,3 +92,26 @@ class UpdateMeTests(APITestCase):
         self.assertEqual(response.status_code, 200)
         customer.customer.refresh_from_db()
         self.assertEqual(customer.customer.address, "Minsk, Lenina 1")
+
+    def test_the_phone_number_cannot_be_changed_here(self):
+        customer = self.sign_in(make_customer("customer@example.com"))
+
+        response = self.client.patch(UPDATE_ME_URL, {"profile": {"phone": "+375441112233"}}, format="json")
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("phone", response.json()["profile"])
+        customer.customer.refresh_from_db()
+        self.assertEqual(str(customer.customer.phone), "+375291234567")
+
+    def test_a_refused_phone_stops_the_rest_of_the_profile_too(self):
+        customer = self.sign_in(make_customer("customer@example.com"))
+        address_before = customer.customer.address
+        payload = {"first_name": "Mallory", "profile": {"phone": "+375441112233", "address": "Elsewhere"}}
+
+        response = self.client.patch(UPDATE_ME_URL, payload, format="json")
+
+        self.assertEqual(response.status_code, 400)
+        customer.refresh_from_db()
+        customer.customer.refresh_from_db()
+        self.assertEqual(customer.first_name, "Anna")
+        self.assertEqual(customer.customer.address, address_before)

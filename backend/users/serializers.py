@@ -8,6 +8,7 @@ from django.db import transaction
 from django.utils.encoding import force_str
 from django.utils.http import urlsafe_base64_decode
 from health_organisations.models import HealthOrganisation
+from phonenumber_field.serializerfields import PhoneNumberField
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.serializers import ModelSerializer, Serializer
@@ -335,12 +336,13 @@ class RepresentativeProfileSerializer(ModelSerializer):
         extra_kwargs: ClassVar = {"health_organisation": {"required": False, "allow_null": True}}
 
 
-# These need flows of their own (the emailed reset, later a change confirmed with the current password)
+# These need flows of their own: the password has one, the email address will get one
 # They are refused loudly: DRF would silently ignore them and answer 200, so a client would think it worked
 FIELDS_WITH_THEIR_OWN_FLOW = {
     "email": "The email address can't be changed here.",
     "password": "The password can't be changed here. Use POST /password/change.",
 }
+PHONE_HAS_ITS_OWN_FLOW = "The phone number can't be changed here. Use POST /phone/change/request."
 
 
 class UserUpdateSerializer(Serializer):
@@ -371,6 +373,14 @@ class UserUpdateSerializer(Serializer):
 
 class CustomerUpdateSerializer(UserUpdateSerializer):
     profile = CustomerProfileSerializer(required=False)
+
+    def to_internal_value(self, data):
+        # Refused as loudly as the email and the password: the number changes only with a code from the mailbox
+        if isinstance(data, Mapping):
+            profile = data.get("profile")
+            if isinstance(profile, Mapping) and "phone" in profile:
+                raise serializers.ValidationError({"profile": {"phone": [PHONE_HAS_ITS_OWN_FLOW]}})
+        return super().to_internal_value(data)
 
     @transaction.atomic
     def update(self, instance, validated_data):
@@ -489,3 +499,21 @@ class PasswordChangeSerializer(Serializer):
         except DjangoValidationError as exc:
             raise serializers.ValidationError({"new_password": list(exc.messages)}) from exc
         return attrs
+
+
+class PhoneChangeRequestSerializer(Serializer):
+    # region="BY": a number typed the way people write it at home ("8 029 123-45-67") is understood too
+    phone = PhoneNumberField(region="BY")
+
+    def validate_phone(self, value):
+        if str(value) == str(self.context["request"].user.customer.phone):
+            raise serializers.ValidationError("This is already your phone number.")
+        return value
+
+
+class PhoneChangeConfirmSerializer(Serializer):
+    code = serializers.CharField(max_length=20)
+
+    def validate_code(self, value):
+        # A code copied as "123 456" is as good as "123456"
+        return "".join(value.split())

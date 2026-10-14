@@ -8,7 +8,9 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
+from phonenumber_field.phonenumber import to_python
 
+from . import phone_change
 from .emails import send_templated_email
 
 logger = get_task_logger(__name__)
@@ -37,6 +39,7 @@ EMAIL_TASK_OPTIONS = {
 EMAIL_SUBJECTS = {
     "password_reset": "Reset your TalonBy password",
     "password_changed": "Your TalonBy password was changed",
+    "phone_change_code": "Your TalonBy confirmation code",
 }
 
 
@@ -90,12 +93,40 @@ def send_password_changed_email(user_id):
 
 
 @shared_task(**EMAIL_TASK_OPTIONS)
+def send_phone_change_code_email(user_id):
+    """Email the code that confirms a new phone number.
+
+    Only the user id travels through Redis. The code is worked out here from the pending change, so it never sits in
+    the queue, and a retry sends the same code.
+    """
+    user = _get_active_user(user_id)
+    if user is None:
+        return
+    pending = phone_change.get_pending(user_id)
+    if pending is None:
+        # Cancelled, used or expired since this task was queued
+        logger.warning("No pending phone change for user %s, no email sent", user_id)
+        return
+    context = {
+        "first_name": user.first_name,
+        "code": phone_change.make_code(user_id, pending["phone"], pending["nonce"]),
+        "phone": to_python(pending["phone"]).as_international,
+        "valid_minutes": phone_change.CODE_LIFETIME // 60,
+    }
+    send_templated_email(user.email, EMAIL_SUBJECTS["phone_change_code"], "phone_change_code", context)
+    # Log the id only: the code is a secret and the number is personal data
+    logger.info("Phone change code email for user %s handed to the email backend", user_id)
+
+
+@shared_task(**EMAIL_TASK_OPTIONS)
 def send_test_email(to_email, kind="password_reset"):
     """Diagnostic task: sends a real template with dummy data through the current EMAIL_* settings."""
     context = {
         "first_name": "Pavel",
         "action_url": f"{settings.FRONTEND_URL}/reset-password?uid=preview&token=preview-token",
         "valid_minutes": 15,
+        "code": "123456",
+        "phone": "+375 44 111-22-33",
     }
     sent = send_templated_email(to_email, EMAIL_SUBJECTS[kind], kind, context)
     logger.info("%s preview: %s message(s) handed to the email backend", kind, sent)
