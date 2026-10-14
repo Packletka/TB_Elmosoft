@@ -55,6 +55,13 @@ function ProfileSettingsPage() {
                       {user.profile.phone}
                     </Typography>
                   </Stack>
+                  <Button
+                    variant="outlined"
+                    component={RouterLink}
+                    to="/profile/settings/phone"
+                  >
+                    Change phone number
+                  </Button>
                 </Stack>
               </>
             )}
@@ -79,7 +86,7 @@ function ProfileSettingsPage() {
         </Paper>
 
         <Typography variant="body2" color="text.secondary">
-          Changing your email or phone number isn't available yet.
+          Changing your email isn't available yet.
         </Typography>
       </Stack>
     </Container>

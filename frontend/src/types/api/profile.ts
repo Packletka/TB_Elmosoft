@@ -1,3 +1,4 @@
+import type { DetailResponse } from "./auth";
 import type { CustomerSex } from "./common";
 import type { DoctorWorkSchedule } from "./doctor";
 
@@ -24,3 +25,14 @@ export type UpdateMePayload =
   | (UserUpdatePayload & { profile?: CustomerProfileUpdatePayload })
   | (UserUpdatePayload & { profile?: DoctorProfileUpdatePayload })
   | UserUpdatePayload;
+
+export interface PhoneChangeRequestPayload {
+  phone: string;
+}
+
+export interface PhoneChangeConfirmPayload {
+  code: string;
+}
+
+// The number comes back as the server stored it: international format, no spaces
+export type PhoneChangeConfirmResponse = DetailResponse & { phone: string };
