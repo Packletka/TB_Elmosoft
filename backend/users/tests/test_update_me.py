@@ -31,7 +31,7 @@ class UpdateMeTests(APITestCase):
         response = self.client.patch(UPDATE_ME_URL, {"email": "mallory@example.com"}, format="json")
 
         self.assertEqual(response.status_code, 400)
-        self.assertIn("email", response.json())
+        self.assertIn("/email/change", response.json()["email"][0])  # the message says where to go
         self.user.refresh_from_db()
         self.assertEqual(self.user.email, "anna@example.com")
         self.assertFalse(CustomUser.objects.filter(email="mallory@example.com").exists())

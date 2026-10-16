@@ -42,3 +42,11 @@ export interface PasswordChangePayload {
 
 // A fresh token pair comes with the answer: the change ends every session, this device's included
 export type PasswordChangeResponse = DetailResponse & TokenPairResponse;
+
+export interface EmailChangePayload {
+  new_email: string;
+  current_password: string;
+}
+
+// The address comes back as the server saved it: the part after @ is lowercased
+export type EmailChangeResponse = DetailResponse & { email: string };

@@ -1,6 +1,7 @@
 from appointments.models import Talons
 from django.core.cache import cache
-from django.db import transaction
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.utils import timezone
 from rest_framework import mixins, status, viewsets
@@ -23,6 +24,7 @@ from .serializers import (
     CustomUserSerializer,
     DoctorSerializer,
     DoctorUpdateSerializer,
+    EmailChangeSerializer,
     MeSerializer,
     PasswordChangeSerializer,
     PasswordForgotSerializer,
@@ -303,3 +305,29 @@ class PhoneChangeConfirmView(APIView):
         customer.phone = phone
         customer.save(update_fields=["phone"])
         return Response({"detail": "Phone number changed.", "phone": str(customer.phone)})
+
+
+class EmailChangeView(APIView):
+    """Change the login email of the signed-in user. Needs the current password, so a stolen session is not enough."""
+
+    permission_classes = (IsAuthenticated,)
+    # Counted per account: this form checks the password too, so it must not become a way to guess it
+    throttle_classes = (ScopedRateThrottle,)
+    throttle_scope = "email_change"
+
+    def post(self, request):
+        serializer = EmailChangeSerializer(data=request.data, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+
+        user = request.user
+        user.email = serializer.validated_data["new_email"]
+        try:
+            with transaction.atomic():
+                user.save(update_fields=["email"])
+        except (DjangoValidationError, IntegrityError):
+            # Someone took the address between the check above and the save
+            raise ValidationError({"new_email": ["A user with this email already exists."]}) from None
+
+        # Nothing else to do: tokens carry the user id, not the email, so every session stays signed in, and the mail
+        # tasks read the address when they run
+        return Response({"detail": "Email changed.", "email": user.email})

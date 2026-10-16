@@ -162,6 +162,7 @@ REST_FRAMEWORK = {
         "password_change": "10/hour",
         "phone_change_request": "10/hour",
         "phone_change_confirm": "30/hour",
+        "email_change": "10/hour",
     },
     "NUM_PROXIES": 0,
 }

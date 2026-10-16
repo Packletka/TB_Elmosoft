@@ -38,6 +38,13 @@ function ProfileSettingsPage() {
                 <Typography variant="h6">Email</Typography>
                 <Typography color="text.secondary">{user.email}</Typography>
               </Stack>
+              <Button
+                variant="outlined"
+                component={RouterLink}
+                to="/profile/settings/email"
+              >
+                Change email
+              </Button>
             </Stack>
 
             {user.role === "customer" && (
@@ -84,10 +91,6 @@ function ProfileSettingsPage() {
             </Stack>
           </Stack>
         </Paper>
-
-        <Typography variant="body2" color="text.secondary">
-          Changing your email isn't available yet.
-        </Typography>
       </Stack>
     </Container>
   );

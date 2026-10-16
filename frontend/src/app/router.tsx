@@ -16,6 +16,7 @@ import DoctorTalonsPage from "../pages/appointments/DoctorTalonsPage";
 import ProfilePage from "../pages/profile/ProfilePage";
 import EditProfilePage from "../pages/profile/EditProfilePage";
 import ProfileSettingsPage from "../pages/profile/ProfileSettingsPage";
+import ChangeEmailPage from "../pages/profile/ChangeEmailPage";
 import ChangePasswordPage from "../pages/profile/ChangePasswordPage";
 import ChangePhonePage from "../pages/profile/ChangePhonePage";
 
@@ -53,6 +54,7 @@ export const router = createBrowserRouter([
             path: "/profile/settings/password",
             element: <ChangePasswordPage />,
           },
+          { path: "/profile/settings/email", element: <ChangeEmailPage /> },
           {
             element: <RequireRole allowedRoles={["customer"]} />,
             children: [

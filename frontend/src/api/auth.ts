@@ -3,6 +3,8 @@ import apiClient from "./client";
 import type { RegisterPayload } from "../types/api/auth";
 import type {
   DetailResponse,
+  EmailChangePayload,
+  EmailChangeResponse,
   PasswordChangePayload,
   PasswordChangeResponse,
   PasswordResetPayload,
@@ -48,6 +50,10 @@ export const authApi = {
 
   changePassword(data: PasswordChangePayload) {
     return apiClient.post<PasswordChangeResponse>("/password/change", data);
+  },
+
+  changeEmail(data: EmailChangePayload) {
+    return apiClient.post<EmailChangeResponse>("/email/change", data);
   },
 
   resetPassword(data: PasswordResetPayload) {

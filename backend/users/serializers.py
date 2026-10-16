@@ -336,10 +336,10 @@ class RepresentativeProfileSerializer(ModelSerializer):
         extra_kwargs: ClassVar = {"health_organisation": {"required": False, "allow_null": True}}
 
 
-# These need flows of their own: the password has one, the email address will get one
+# These have flows of their own
 # They are refused loudly: DRF would silently ignore them and answer 200, so a client would think it worked
 FIELDS_WITH_THEIR_OWN_FLOW = {
-    "email": "The email address can't be changed here.",
+    "email": "The email address can't be changed here. Use POST /email/change.",
     "password": "The password can't be changed here. Use POST /password/change.",
 }
 PHONE_HAS_ITS_OWN_FLOW = "The phone number can't be changed here. Use POST /phone/change/request."
@@ -517,3 +517,28 @@ class PhoneChangeConfirmSerializer(Serializer):
     def validate_code(self, value):
         # A code copied as "123 456" is as good as "123456"
         return "".join(value.split())
+
+
+class EmailChangeSerializer(Serializer):
+    current_password = serializers.CharField(write_only=True, trim_whitespace=False, max_length=128)
+    new_email = serializers.EmailField(max_length=254)
+
+    def validate_current_password(self, value):
+        if not self.context["request"].user.check_password(value):
+            raise serializers.ValidationError("The current password is incorrect.")
+        return value
+
+    def validate_new_email(self, value):
+        # The same cleaning registration gets: the part after @ is lowercased
+        return CustomUser.objects.normalize_email(value)
+
+    def validate(self, attrs):
+        # DRF skips validate() when a field already failed, so whether an address is taken is revealed only after
+        # the current password is right
+        email = attrs["new_email"]
+        if email.lower() == self.context["request"].user.email.lower():
+            raise serializers.ValidationError({"new_email": ["This is already your email address."]})
+        # iexact, so nobody can end up with an address that differs from another account's only in letter case
+        if CustomUser.objects.filter(email__iexact=email).exists():
+            raise serializers.ValidationError({"new_email": ["A user with this email already exists."]})
+        return attrs
