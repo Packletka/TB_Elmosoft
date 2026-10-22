@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "appointments",
     "health_organisations",
+    "django_celery_beat",
 ]
 
 MIDDLEWARE = [
@@ -229,6 +230,8 @@ CELERY_BROKER_URL = "redis://{password}{host}:{port}/0".format(
 
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 CELERY_TASK_IGNORE_RESULT = True
+
+CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 
 # A cache shared by all web processes: the same Redis server, database 1 (the Celery broker uses database 0).
 CACHES = {
