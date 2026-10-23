@@ -42,6 +42,37 @@ services:
       - path: backend/.env.email
         required: false
 
+  # Run exactly one Beat: multiple instances each fire every due task, sending duplicate reminders
+  celery-beat:
+    build: .
+    # Overrides the image's default command (migrate + runserver)
+    # No --scheduler flag is needed because settings.py supplies the class
+    command: celery -A talonby beat -l INFO
+    # Same reason as the worker: makes talonby importable and finds .env.local
+    working_dir: /app/backend
+    # Redis is the broker; db stores the schedule;
+    # django-web starts first and begins migrating, shortening the
+    # race but not waiting for it (see restart note)
+    depends_on:
+      - redis
+      - db
+      - django-web
+    volumes:
+      - ./backend:/app/backend
+    env_file:
+      # Used to construct CELERY_BROKER_URL
+      - backend/.env.redis
+      # Supplies the connection details so Beat can read the schedule rows
+      - backend/.env.db
+      # Supplies SECRET_KEY and other Django settings
+      - backend/.env.django
+      # (No email file here: Beat only schedules tasks; the worker sends the mail)
+    # On a fresh DB, Beat crashes with a missing 'django_celery_beat_crontabschedule' relation error;
+    # retrying fixes it once migrations finish. If the cap
+    # runs out (shown as Exited in ps with this error in the log),
+    # raise this value (e.g., to 10 or 15) on slower machines
+    restart: on-failure:5
+
 #  taken from habr
   redis:
     image: redis:latest
